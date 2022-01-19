@@ -1,4 +1,4 @@
-setwd('/Users/teresabortolotti/Documents/R/WFDA')
+setwd('/Users/teresabortolotti/Documents/R/WFDA-Fcovariates')
 
 rm(list=ls())
 graphics.off()

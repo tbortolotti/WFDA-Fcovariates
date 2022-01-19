@@ -1,4 +1,4 @@
-setwd('/Users/teresabortolotti/Documents/R/WFDA')
+setwd('/Users/teresabortolotti/Documents/R/WFDA-Fcovariates')
 
 library(fda)
 library(fdakma)

@@ -1,4 +1,4 @@
-setwd('C:/Users/Teresa Bortolotti/Documents/R/tesi_codes/bootstrap')
+setwd('/Users/teresabortolotti/Documents/R/WFDA-Fcovariates')
 
 library(fda)
 library(fdakma)
