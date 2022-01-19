@@ -16,5 +16,9 @@ The repository is composed of:
 * `DATA`: Folder containing the data of the case study. In particular, `curves.RData` is the file containing the values of the registered curves at the sampling instants. It is a matrix of dimension N x n, where N is the number of sampling instant and n is the numerosity of the curves. `data.RData` contains the values of the original seismic parameters, i.e. Joyner-Boore distance (dJB), magnitude (MAG), style-of-faulting (SoF), shear-wave velocity (VS30) and frequencies of registration U_hp and V_hp. `xlist.RData` contains a 9-element list of the functional covariates, after a smoothing procedure was performed in a preprocessing step. `events.RData` contains information about the event associated to each curve, namely the event identification number (event.id), the longitude and latitude (event.long, event.lat).
 * `methods`: Folder containing all functions used in the analysis. Each function in the folder contains a brief description of its usage and of its input and return parameters.  `methods/plots` contains the functions used to create the plots and to do diagnostic on the results of the analysis. `methods/Regression` contains the functions used to perform the function-on-function linear regression.
 
+## Installation
+
+Run file `install_packages.R` to have an automatic installation of the required R packages.
+
 ### Author
 Teresa Bortolotti
