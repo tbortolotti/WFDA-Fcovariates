@@ -33,11 +33,11 @@ log.Thp     <- log10(T_hp)
 
 B     <- 5 #10
 
-method <- 'interpolation'
-#method <- 'interpolation-noweight'
+method <- 'extrapolation'
+#method <- 'extrapolation-noweight'
 #method <- 'Kraus1'
 #method <- 'Kraus2'
-#method <- 'KLNoAl' 
+method <- 'KLNoAl' 
 #method <- 'KLAl'
 
 loc.vec <- seq(0, 1, by=0.2)
@@ -52,7 +52,7 @@ loc     <- loc.vec[i]
 MSE_cv <- numeric(B)
 MSE_reconstruction_cv <- numeric(B)
 
-pb <- progressBar(0, max = B, initial = 0, style = "ETA")
+pb <- progress_bar$new(total=B)
 for(b in 1:B)
 {
   method_evaluation <- method_comparison(b          = b,
@@ -74,7 +74,7 @@ for(b in 1:B)
   MSE <- mean(MSE_cv)
   MSE_reconstruction <- mean(MSE_reconstruction_cv)
   
-  setTxtProgressBar(pb, b)
+  pb$tick()
   
 }
 
@@ -95,23 +95,23 @@ round(End.Time - Start.Time, 2)
 MSEs <- numeric(9)
 MSEs_recon <- numeric(9)
 
-load('MSE_vals_lambdasel/MSE_interpolation_0.RData')
+load('MSE_vals_lambdasel/MSE_extrapolation_0.RData')
 MSEs[1] <- MSE
 MSEs_recon[1] <- MSE_reconstruction
 
-load('MSE_vals_lambdasel/MSE_interpolation_1.RData')
+load('MSE_vals_lambdasel/MSE_extrapolation_1.RData')
 MSEs[2] <- MSE
 MSEs_recon[2] <- MSE_reconstruction
 
-load('MSE_vals_lambdasel/MSE_interpolation_2.RData')
+load('MSE_vals_lambdasel/MSE_extrapolation_2.RData')
 MSEs[3] <- MSE
 MSEs_recon[3] <- MSE_reconstruction
 
-load('MSE_vals_lambdasel/MSE_interpolation_3.RData')
+load('MSE_vals_lambdasel/MSE_extrapolation_3.RData')
 MSEs[4] <- MSE
 MSEs_recon[4] <- MSE_reconstruction
 
-load('MSE_vals_lambdasel/MSE_interpolation_4.RData')
+load('MSE_vals_lambdasel/MSE_extrapolation_4.RData')
 MSEs[5] <- MSE
 MSEs_recon[5] <- MSE_reconstruction
 

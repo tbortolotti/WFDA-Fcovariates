@@ -8,7 +8,7 @@ methods_workflow <- function(b,
                              B,
                              xlist,
                              blist,
-                             method = c('interpolation', 'interpolation-noweight',
+                             method = c('extrapolation', 'extrapolation-noweight',
                                         'Kraus1', 'Kraus2', 'KLNoAl' ,'KLAl'),
                              loc=NULL)
 {
@@ -68,7 +68,7 @@ methods_workflow <- function(b,
   log.Thp.train  <- log.Thp[train]
   
   #### Interpolation -----------------------------------------------------------
-  if(any(method == 'interpolation'))
+  if(any(method == 'extrapolation'))
   {
     interpolate   <- interpolation(curves       = curves.train,
                                    t.points     = T.period,
@@ -139,7 +139,7 @@ methods_workflow <- function(b,
   }
   
   #### Interpolation and NO WEIGHT ---------------------------------------------
-  if(any(method == 'interpolation-noweight'))
+  if(any(method == 'extrapolation-noweight'))
   {
     interpolate   <- interpolation(curves       = curves.train,
                                    t.points     = T.period,

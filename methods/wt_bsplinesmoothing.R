@@ -42,7 +42,6 @@ wt_bsplinesmoothing <- function(curves, wgts.obs, t.points, lambda=NULL, set.cb 
   TT <- length(t.points)
   y2cmaps <- array(data=0, dim=c(L,TT,n))
   pb <- progress_bar$new(total=n)
-  #pb <- progressBar(0, max=n, initial=0, style="ETA")
   for(i in 1:n)
   {
     curve            <- curves[,i]
@@ -54,7 +53,6 @@ wt_bsplinesmoothing <- function(curves, wgts.obs, t.points, lambda=NULL, set.cb 
     {
       y2cmaps[,,i] <- curve.s$y2cMap
     }
-    #setTxtProgressBar(pb, i)
     pb$tick()
   }
   
