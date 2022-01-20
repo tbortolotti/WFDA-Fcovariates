@@ -27,9 +27,9 @@ eval_MSE <- function(curves, curves.hat, t.points)
     
     err.O       <- curve.O - curve.hat.O
     
-    basis    <- create.bspline.basis(rangeval=range(t.0), breaks=t.0, norder=4)
+    basis    <- create.bspline.basis(rangeval=range(t.O), breaks=t.O, norder=4)
     fPar     <- fdPar(fdobj=basis, Lfdobj=2, lambda=1e-5)
-    err.O.fd <- smooth.basis(t.0, err.O, fPar)$fd
+    err.O.fd <- smooth.basis(t.O, err.O, fPar)$fd
 
     MSE_j    <- inprod(err.O.fd, err.O.fd, 0, 0, rng=range(t.O))
     

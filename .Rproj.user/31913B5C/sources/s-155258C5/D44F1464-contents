@@ -68,8 +68,8 @@ interpolate   <- interpolation(curves       = curves,
                                reconst_fcts = reconst_fcts)
 curves.interp <- interpolate$curves.rec
 
-#x11(width=8000, height=5000)
 #matplot(T.period, curves.interp[,reconst_fcts], type='l')
+#matplot(t.points, curves.interp[,reconst_fcts], type='l')
 
 ## Construction of the weights -------------------------------------------------
 wgt              <- create_weights(curves        = curves.interp,

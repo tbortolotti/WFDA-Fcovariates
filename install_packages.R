@@ -32,3 +32,6 @@ if(length(new_packages))
 {
   install.packages(new_packages)
 }
+
+library(devtools)
+install_github("lidom/ReconstPoFD/ReconstPoFD")
