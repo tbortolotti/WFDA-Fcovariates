@@ -1,12 +1,11 @@
 # Magnitude saturation analysis -----------------------------------------
 
 magnitude_check <- function(mod.fit, t.points, name_dir, t.idxs, magnitudes,
-                            data, curves)
+                            data, curves, set.log=FALSE)
 {
   library(fda)
   library(coda)
   library(devtools)
-  library(pbmcapply)
   library(wesanderson)
   
   ## Plot utilities that depend on magnitudes -------------------------
@@ -61,7 +60,13 @@ magnitude_check <- function(mod.fit, t.points, name_dir, t.idxs, magnitudes,
   {
     t.idx  <- t.idxs[i]
     t      <- t.points[t.idx]
-    t.plot <- 10^t
+    if(set.log)
+    {
+      t.plot <- 10^t
+    } else {
+      t.plot <- t
+    }
+    
     
     M.h.T   <- Mh.vec[i]
     M.ref.T <- Mref.vec[i]

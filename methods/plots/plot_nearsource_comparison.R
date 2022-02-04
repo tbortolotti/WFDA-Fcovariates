@@ -1,9 +1,8 @@
-plot_nearsource_comparison <- function(mod.fit, t.points, name_dir, t.idxs, data, curves)
+plot_nearsource_comparison <- function(mod.fit, t.points, name_dir, t.idxs, data, curves, set.log=FALSE)
 {
   library(fda)
   library(coda)
   library(devtools)
-  library(pbmcapply)
   library(wesanderson)
   
   pal <- wes_palette('Cavalcanti1')
@@ -64,7 +63,13 @@ plot_nearsource_comparison <- function(mod.fit, t.points, name_dir, t.idxs, data
     
     t.idx <- t.idxs[i]
     t <- t.points[t.idx]
-    t.plot <- 10^t
+    if(set.log)
+    {
+      t.plot <- 10^t
+    } else {
+      t.plot <- t
+    }
+    
     
     a0.T <- eval.fd(t,a0.est)
     b1.T <- eval.fd(t,b1.est)

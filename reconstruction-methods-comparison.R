@@ -6,67 +6,67 @@ library(fastmatrix)
 library(calculus)
 library(ReconstPoFD)
 library(snowfall)
+library(progress)
+library(ggplot2)
+library(fields)
 
 rm(list=ls())
 graphics.off()
 cat("\014")
 
-## Load Data ---------------------------------------------------------------
+## Load Data -------------------------------------------------------------------
 load('DATA/curves.RData')
 load('DATA/t_period.RData')
 load('DATA/obs.RData')
 load('DATA/T_hp.RData')
 load('DATA/xlist.RData')
 load('DATA/events.RData')
-load('blist_options/blist_redo.RData')
+load('blist_options/blist-newestbreaks.RData')
 
-## Function for the evaluation of the MAE for each proposed method
-source('methods/methods_workflow.R')
+## Function for the evaluation of the MSE for each proposed method
+source('methods/Reconstruction/methods_workflow.R')
 
-## Logarithm of the period --------------------------------------------------
-t.points    <- log10(T.period)
-t.points[1] <- -3
+# Logarithm of the period
+t.points    <- T.period
 
 log.Thp     <- log10(T_hp)
 
-## Cross-validation --------------------------------------------------
+## Cross-validation ------------------------------------------------------------
 
 B     <- 5 #10
 
-method <- 'extrapolation'
-#method <- 'extrapolation-noweight'
+#method <- 'extrapolation'
+method <- 'extrapolation-noweight'
 #method <- 'Kraus1'
 #method <- 'Kraus2'
 method <- 'KLNoAl' 
 #method <- 'KLAl'
 
-loc.vec <- seq(0, 1, by=0.2)
+
+loc.vec <- c(0,2,5)
 i       <- 1
 loc     <- loc.vec[i]
-
-
-### Evaluate simulation time
-(Start.Time <- Sys.time())
 
 
 MSE_cv <- numeric(B)
 MSE_reconstruction_cv <- numeric(B)
 
+(Start.Time <- Sys.time())
 pb <- progress_bar$new(total=B)
 for(b in 1:B)
 {
-  method_evaluation <- method_comparison(b          = b,
-                                         T.period   = T.period,
-                                         t.points   = t.points,
-                                         T_hp       = T_hp,
-                                         log.Thp    = log.Thp,
-                                         curves     = curves,
-                                         events     = event.id,
-                                         B          = B,
-                                         xlist      = xlist,
-                                         blist      = blist,
-                                         method     = method,
-                                         loc        = loc)
+  method_evaluation <- methods_workflow(b          = b,
+                                        T.period   = T.period,
+                                        t.points   = t.points,
+                                        T_hp       = T_hp,
+                                        log.Thp    = log.Thp,
+                                        curves     = curves,
+                                        events     = event.id,
+                                        B          = B,
+                                        xlist      = xlist,
+                                        blist      = blist,
+                                        method     = method,
+                                        loc        = loc)
   
   MSE_cv[b] <- method_evaluation$MSE
   MSE_reconstruction_cv[b] <- method_evaluation$MSE_reconstruction
@@ -77,64 +77,137 @@ for(b in 1:B)
   pb$tick()
   
 }
+End.Time <- Sys.time()
+round(End.Time - Start.Time, 2)
 
+#name.file <- paste0('Results/Reconstruction-methods-comparison/5-fold/period/MSE_',method,'_',(i-1),'.RData')
+#save(MSE_cv, MSE_reconstruction_cv, MSE, MSE_reconstruction, file=name.file)
 
-name.file <- paste0('noweight/MSE_',method,'_',loc,'.RData')
-
+name.file <- paste0('Results/Reconstruction-methods-comparison/5-fold/period/MSE_',method,'.RData')
 save(MSE_cv, MSE_reconstruction_cv, MSE, MSE_reconstruction, file=name.file)
 
-##------------------------------------
-End.Time <- Sys.time()
-## Run-time:
-round(End.Time - Start.Time, 2)
-##------------------------------------
+load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation-noweight.RData')
+mean(MSE_cv)
 
+# Store results ----------------------------------------------------------------
+MSEs <- numeric(8)
+MSEs_recon <- numeric(8)
 
-
-# Store results ----------------------------------------------------
-MSEs <- numeric(9)
-MSEs_recon <- numeric(9)
-
-load('MSE_vals_lambdasel/MSE_extrapolation_0.RData')
+load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_0.RData')
 MSEs[1] <- MSE
 MSEs_recon[1] <- MSE_reconstruction
+extrap0 <- MSE_cv
 
-load('MSE_vals_lambdasel/MSE_extrapolation_1.RData')
+# load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_1.RData')
+# MSEs[2] <- MSE
+# MSEs_recon[2] <- MSE_reconstruction
+# extrap1 <- MSE_cv
+# 
+load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_2.RData')
 MSEs[2] <- MSE
 MSEs_recon[2] <- MSE_reconstruction
+extrap2 <- MSE_cv
 
-load('MSE_vals_lambdasel/MSE_extrapolation_2.RData')
+# load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_3.RData')
+# MSEs[2] <- MSE
+# MSEs_recon[2] <- MSE_reconstruction
+# extrap3 <- MSE_cv
+
+# load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_4.RData')
+# MSEs[5] <- MSE
+# MSEs_recon[5] <- MSE_reconstruction
+# extrap4 <- MSE_cv
+
+load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_5.RData')
 MSEs[3] <- MSE
 MSEs_recon[3] <- MSE_reconstruction
+extrap5 <- MSE_cv
 
-load('MSE_vals_lambdasel/MSE_extrapolation_3.RData')
+load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation-noweight.RData')
 MSEs[4] <- MSE
 MSEs_recon[4] <- MSE_reconstruction
+extrap_no <- MSE_cv
 
-load('MSE_vals_lambdasel/MSE_extrapolation_4.RData')
+load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_Kraus1.RData')
 MSEs[5] <- MSE
 MSEs_recon[5] <- MSE_reconstruction
+Kraus1 <- MSE_cv
 
-load('MSE_vals_lambdasel/MSE_Kraus1.RData')
+load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_Kraus2.RData')
 MSEs[6] <- MSE
 MSEs_recon[6] <- MSE_reconstruction
+Kraus2 <- MSE_cv
 
-load('MSE_vals_lambdasel/MSE_Kraus2.RData')
+load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_KLNoAl.RData')
 MSEs[7] <- MSE
 MSEs_recon[7] <- MSE_reconstruction
+KLNoAl <- MSE_cv
 
-load('MSE_vals_lambdasel/MSE_KLNoAl.RData')
+load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_KLAl.RData')
 MSEs[8] <- MSE
 MSEs_recon[8] <- MSE_reconstruction
+KLAl <- MSE_cv
 
-load('MSE_vals_lambdasel/MSE_KLAl.RData')
-MSEs[9] <- MSE
-MSEs_recon[9] <- MSE_reconstruction
-
-
-## Analyse results ----------------------------------------
 MSEs.rel <- MSEs/min(MSEs)
 MSEs.rel
 
 MSEs
 MSEs_recon
+
+## Boxplots of the comparison ------------------------------------------------------------------
+
+# class <- c(rep('extrap 0',B),
+#            rep('extrap 1', B),
+#            rep('extrap 2', B),
+#            rep('extrap 3', B),
+#            rep('extrap 4', B),
+#            rep('extrap no-wgts', B),
+#            rep('Kraus 1', B),
+#            rep('Kraus 2', B),
+#            rep('KL - No Al', B),
+#            rep('KL - Al', B))
+# 
+# data.box <- data.frame(c(extrap0,
+#                          extrap1,
+#                          extrap2,
+#                          extrap3,
+#                          extrap4,
+#                          extrap_no,
+#                          Kraus1,
+#                          Kraus2,
+#                          KLNoAl,
+#                          KLAl), as.factor(class))
+
+class <- c(rep('extrap 0',B),
+           rep('extrap 2', B),
+           rep('extrap 5', B),
+           rep('extrap no-wgts', B),
+           rep('Kraus 1', B),
+           rep('Kraus 2', B),
+           rep('KL - No Al', B),
+           rep('KL - Al', B))
+
+data.box <- data.frame(c(extrap0,
+                         extrap2,
+                         extrap5,
+                         extrap_no,
+                         Kraus1,
+                         Kraus2,
+                         KLNoAl,
+                         KLAl), as.factor(class))
+names(data.box) <- c('MSE', 'class')
+
+pg_plot <- ggplot(data.box, aes(x = class, y = MSE))+
+  geom_boxplot(color="black", fill=tim.colors(8))
+pg_plot +
+  scale_x_discrete(limits = levels(data.box$class)) +
+  scale_y_continuous(limits=c(0.08,0.2)) +
+  labs(y="5-fold Mean Squared Error", x="") +
+  theme(axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15)) +
+  theme(legend.position="None")
+
+
+

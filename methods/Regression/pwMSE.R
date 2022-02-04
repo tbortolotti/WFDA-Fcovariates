@@ -1,5 +1,5 @@
 pwMSE <- function(curves, curves.fd, xlist, t.points, events, blist, B,
-                        wgts.fd, set.ITA18 = FALSE, data = NULL)
+                        wgts.fd, set.ITA18 = FALSE, data.f = NULL)
 {
   # Methods ------------------------------------------------------------------
   source('methods/Regression/weighted_fRegress.R')
@@ -39,8 +39,8 @@ pwMSE <- function(curves, curves.fd, xlist, t.points, events, blist, B,
     wgts.fd.train <- wgts.fd
     wgts.fd.train$coefs <- wgts.fd$coefs[,train]
     
-    data.test      <- data[test,]
-    data.train     <- data[train,]
+    data.test      <- data.f[test,]
+    data.train     <- data.f[train,]
     
     # Create xlist.test and xlist.train
     xlist.test  <- list()
@@ -80,7 +80,7 @@ pwMSE <- function(curves, curves.fd, xlist, t.points, events, blist, B,
     ##ITA18
     if(set.ITA18)
     {
-      coefs.ITA18      <- fit_ITA18(data.train, curves.train)
+      coefs.ITA18      <- fit_ITA18(data.train, curves.train)$coefs.ITA18
       curves.hat.ita18 <- predict_ITA18(data.test, coefs.ITA18)
       diff2.mat.18     <- (curves.test - curves.hat.ita18)^2
       diff2.mat.18[is.na(diff2.mat.18)] <- 0

@@ -10,7 +10,6 @@ library(roahd)
 library(coda)
 library(devtools)
 library(fastmatrix)
-library(R.matlab)
 
 ## DATA EXTRACTION -------------------------------------------------------------
 
@@ -218,67 +217,73 @@ load('DATA/t_period.RData')
 ## 1. Build Mh, Mref and h functional objects
 names(ITA18.regressors)
 
+par(mfrow=c(3,1))
 plot(T.period, ITA18.regressors$Mh.vec, type='l', xlab='Period', ylab='Mh')
 plot(T.period, ITA18.regressors$Mref.vec, type='l', xlab='Period', ylab='Mref')
 plot(T.period, ITA18.regressors$h.vec, type='l', xlab='Period', ylab='h')
 
 t.points <- log10(T.period)
-t.points[1] <- -3
+t.points[1] <- -2.4
 
+par(mfrow=c(3,1))
 plot(t.points, ITA18.regressors$Mh.vec, type='l', xlab='log10(T)', ylab='Mh')
 plot(t.points, ITA18.regressors$Mref.vec, type='l', xlab='log10(T)', ylab='Mref')
 plot(t.points, ITA18.regressors$h.vec, type='l', xlab='log10(T)', ylab='h')
 
-# Mh
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=1)
-Mh.fd <- smooth.basis(t.points, ITA18.regressors$Mh.vec, basis)
-plot(Mh.fd)
-lines(t.points, ITA18.regressors$Mh.vec, type='l', xlab='Period', ylab='Mh', col='red')
+## Functional covariates on T ## -------------------------------------------
+t.points <- T.period
+breaks <- c(seq(0,1,0.1), seq(2,10,0.5))
 
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=3)
-fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.1)
+# Mh
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=1)
 Mh.fd <- smooth.basis(t.points, ITA18.regressors$Mh.vec, fPar)
 plot(Mh.fd)
 lines(t.points, ITA18.regressors$Mh.vec, type='l', xlab='Period', ylab='Mh', col='red')
 
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=1)
+Mh.fd <- smooth.basis(t.points, ITA18.regressors$Mh.vec, fPar)
+plot(Mh.fd)
+lines(t.points, ITA18.regressors$Mh.vec, type='l', xlab='Period', ylab='Mh', col='red')
 
 # Mref
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
 esp        <- seq(-1,10, by=1)
 lambda.vec <- sort(10^-esp)
 gcv.vec    <- numeric(length(lambda.vec))
 for(j in 1:length(lambda.vec))
 {
-  fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.vec[j])
+  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
   gcv.vec[j] <- smooth.basis(t.points, ITA18.regressors$Mref.vec, fPar)$gcv
 }
 lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
-lambda.opt
+lambda.opt #0.01
 
 plot(log10(lambda.vec), gcv.vec, type='l')
 
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
-fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.opt)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.opt)
 Mref.fd <- smooth.basis(t.points, ITA18.regressors$Mref.vec, fPar)
 plot(Mref.fd)
 lines(t.points, ITA18.regressors$Mref.vec, type='l', xlab='Period', ylab='Mref', col='red')
 
 # h
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
 esp        <- seq(-1,12, by=1)
 lambda.vec <- sort(10^-esp)
 gcv.vec    <- numeric(length(lambda.vec))
 for(j in 1:length(lambda.vec))
 {
-  fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.vec[j])
+  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
   gcv.vec[j] <- smooth.basis(t.points, ITA18.regressors$h.vec, fPar)$gcv
 }
 lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
-lambda.opt
+lambda.opt #0.01
 
 plot(log10(lambda.vec)[2:5], gcv.vec[2:5], type='l')
 
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
 fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.opt)
 h.fd <- smooth.basis(t.points, ITA18.regressors$h.vec, fPar)
 plot(h.fd)
@@ -324,7 +329,295 @@ reg.S       <- ifelse(VS30<=1500, log10(VS30/800), log10(1500/800))
 # reg.Mlow
 matplot(t.points, reg.Mlow, type='l')
 
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=3)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+esp        <- seq(-1,12, by=1)
+lambda.vec <- sort(10^-esp)
+gcv.vec    <- numeric(length(lambda.vec))
+for(j in 1:length(lambda.vec))
+{
+  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
+  gcv.vec[j] <- sum(smooth.basis(t.points, R.mat, fPar)$gcv)/n
+}
+lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+lambda.opt #0.01
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.opt)
+Mlow.fd <- smooth.basis(t.points, reg.Mlow, fPar)$fd
+plot(Mlow.fd)
+
+# I decide to force it to be smoother
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=1) 
+Mlow.fd <- smooth.basis(t.points, reg.Mlow, fPar)$fd
+plot(Mlow.fd)
+
+# reg.Mhigh
+matplot(t.points, reg.Mhigh, type='l')
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=1)
+Mhigh.fd <- smooth.basis(t.points, reg.Mhigh, fPar)$fd
+plot(Mhigh.fd)
+
+# R
+matplot(t.points, R.mat, type='l', main='True R')
+
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+esp        <- seq(-1,12, by=1)
+lambda.vec <- sort(10^-esp)
+gcv.vec    <- numeric(length(lambda.vec))
+for(j in 1:length(lambda.vec))
+{
+  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
+  gcv.vec[j] <- sum(smooth.basis(t.points, R.mat, fPar)$gcv)/n
+}
+lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+lambda.opt
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.opt)
+R.fd <- smooth.basis(t.points, R.mat, fPar)$fd
+plot(R.fd, main='Smoothed R')
+
+# Look what happens for short and long distances: indexes 21 - 36
+r <- R.mat[,21]
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+esp        <- seq(-1,12, by=1)
+lambda.vec <- sort(10^-esp)
+gcv.vec    <- numeric(length(lambda.vec))
+for(j in 1:length(lambda.vec))
+{
+  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
+  gcv.vec[j] <- smooth.basis(t.points, r, fPar)$gcv
+}
+lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+lambda.opt
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.opt)
+r.fd <- smooth.basis(t.points, r, fPar)
+plot(r.fd)
+lines(t.points, r, type='l', xlab='Period', ylab='R - idx 21', col='red')
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.1)
+r.fd <- smooth.basis(t.points, r, fPar)
+plot(r.fd)
+lines(t.points, r, type='l', xlab='Period', ylab='R - idx 21', col='red')
+
+r <- R.mat[,36]
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+esp        <- seq(-1,12, by=1)
+lambda.vec <- sort(10^-esp)
+gcv.vec    <- numeric(length(lambda.vec))
+for(j in 1:length(lambda.vec))
+{
+  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
+  gcv.vec[j] <- smooth.basis(t.points, r, fPar)$gcv
+}
+lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+lambda.opt
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.opt)
+r.fd <- smooth.basis(t.points, r, fPar)
+plot(r.fd)
+lines(t.points, r, type='l', xlab='Period', ylab='R - idx 21', col='red')
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.1)
+r.fd <- smooth.basis(t.points, r, fPar)
+plot(r.fd)
+lines(t.points, r, type='l', xlab='Period', ylab='R - idx 21', col='red')
+
+# reg.D1
+matplot(t.points, reg.D1, type='l')
+
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+esp        <- seq(-1,12, by=1)
+lambda.vec <- sort(10^-esp)
+gcv.vec    <- numeric(length(lambda.vec))
+for(j in 1:length(lambda.vec))
+{
+  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
+  gcv.vec[j] <- sum(smooth.basis(t.points, reg.D1, fPar)$gcv)/n
+}
+lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+lambda.opt #0.01
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.01)
+D1.fd <- smooth.basis(t.points, reg.D1, fPar)$fd
+plot(D1.fd)
+
+# reg.D2
+matplot(t.points, reg.D2, type='l')
+
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+esp        <- seq(-1,12, by=1)
+lambda.vec <- sort(10^-esp)
+gcv.vec    <- numeric(length(lambda.vec))
+for(j in 1:length(lambda.vec))
+{
+  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
+  gcv.vec[j] <- sum(smooth.basis(t.points, reg.D2, fPar)$gcv)/n
+}
+lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+lambda.opt #0.01
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.01) #
+D2.fd <- smooth.basis(t.points, reg.D2, fPar)$fd
+plot(D2.fd)
+
+# reg.D3
+matplot(t.points, reg.D3, type='l')
+
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+esp        <- seq(-1,12, by=1)
+lambda.vec <- sort(10^-esp)
+gcv.vec    <- numeric(length(lambda.vec))
+for(j in 1:length(lambda.vec))
+{
+  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
+  gcv.vec[j] <- sum(smooth.basis(t.points, reg.D3, fPar)$gcv)/n
+}
+lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+lambda.opt #0.01
+
+d3 <- reg.D3[,21]
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.1)
+d3.fd <- smooth.basis(t.points, d3, fPar)$fd
+plot(d3.fd, t.points, type='l')
+lines(t.points, d3, type='l', xlab='Period', ylab='Reg D3 - idx 21', col='red')
+
+d3 <- reg.D3[,21]
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.01)
+d3.fd <- smooth.basis(t.points, d3, fPar)$fd
+plot(d3.fd, t.points, type='l')
+lines(t.points, d3, type='l', xlab='Period', ylab='Reg D3 - idx 36', col='red')
+
+
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.01)
+D3.fd <- smooth.basis(t.points, reg.D3, fPar)$fd
+plot(D3.fd)
+
+# Project constant coefficients over a constant basis
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.1)
+
+reg.SS <- t(replicate(N, reg.SS))
+SS.fd <- smooth.basis(t.points, reg.SS, fPar)$fd
+par(mfrow=c(2,1))
+matplot(t.points, reg.SS, type='l')
+plot(SS.fd)
+
+reg.TF <- t(replicate(N, reg.TF))
+TF.fd <- smooth.basis(t.points, reg.TF, fPar)$fd
+
+reg.S <- t(replicate(N, reg.S))
+S.fd <- smooth.basis(t.points, reg.S, fPar)$fd
+
+
+# Create the intercept
+intercept <- t(replicate(N, rep(1,n)))
+intercept.fd <- smooth.basis(t.points, intercept, fPar)$fd
+
+## Finally build the list of functional regressors
+xlist <- list(intercept.fd, Mlow.fd, Mhigh.fd, SS.fd, TF.fd, D1.fd, D2.fd, D3.fd, S.fd)
+save(xlist, file='DATA/xlist.RData')
+
+## Functional covariates on log(T) ## --------------------------------------------------
+t.points <- log10(T.period)
+t.points[1] <- -2.4
+breaks <- t.points
+# Mh
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=1)
+Mh.fd <- smooth.basis(t.points, ITA18.regressors$Mh.vec, basis)
+plot(Mh.fd)
+lines(t.points, ITA18.regressors$Mh.vec, type='l', xlab='Period', ylab='Mh', col='red')
+
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
+fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.1)
+Mh.fd <- smooth.basis(t.points, ITA18.regressors$Mh.vec, fPar)
+plot(Mh.fd)
+lines(t.points, ITA18.regressors$Mh.vec, type='l', xlab='Period', ylab='Mh', col='red')
+
+
+# Mref
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
+esp        <- seq(-1,10, by=1)
+lambda.vec <- sort(10^-esp)
+gcv.vec    <- numeric(length(lambda.vec))
+for(j in 1:length(lambda.vec))
+{
+  fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.vec[j])
+  gcv.vec[j] <- smooth.basis(t.points, ITA18.regressors$Mref.vec, fPar)$gcv
+}
+lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+lambda.opt
+
+plot(log10(lambda.vec), gcv.vec, type='l')
+
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
+fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.opt)
+Mref.fd <- smooth.basis(t.points, ITA18.regressors$Mref.vec, fPar)
+plot(Mref.fd)
+lines(t.points, ITA18.regressors$Mref.vec, type='l', xlab='Period', ylab='Mref', col='red')
+
+# h
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
+esp        <- seq(-1,12, by=1)
+lambda.vec <- sort(10^-esp)
+gcv.vec    <- numeric(length(lambda.vec))
+for(j in 1:length(lambda.vec))
+{
+  fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.vec[j])
+  gcv.vec[j] <- smooth.basis(t.points, ITA18.regressors$h.vec, fPar)$gcv
+}
+lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+lambda.opt
+
+plot(log10(lambda.vec)[2:5], gcv.vec[2:5], type='l')
+
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
+fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.opt)
+h.fd <- smooth.basis(t.points, ITA18.regressors$h.vec, fPar)
+plot(h.fd)
+lines(t.points, ITA18.regressors$h.vec, type='l', xlab='Period', ylab='h', col='red')
+
+
+## 2. Create the list of functional regressors
+load('DATA/data.RData')
+
+n <- dim(rotD50.f)[1]
+N <- length(t.points)
+
+# Create the matrix of values assumed by the regressors at the sampling instants
+reg.Mlow <- matrix(data=0, nrow=N, ncol=n)
+reg.Mhigh <- matrix(data=0, nrow=N, ncol=n)
+reg.D1 <- matrix(data=0, nrow=N, ncol=n)
+reg.D2 <- matrix(data=0, nrow=N, ncol=n)
+reg.D3 <- matrix(data=0, nrow=N, ncol=n)
+
+R.mat <- matrix(data=0, nrow=N, ncol=n)
+
+for(t in 1:N)
+{
+  Mh   <- ITA18.regressors$Mh.vec[t]
+  Mref <- ITA18.regressors$Mref.vec[t]
+  h    <- ITA18.regressors$h.vec[t]
+  R    <- sqrt(dJB^2 + h^2)
+  R.mat[t,] <- R
+  
+  reg.Mlow[t,]  <- ifelse(MAG<=Mh, MAG - Mh, 0)
+  reg.Mhigh[t,] <- ifelse(MAG>Mh, MAG - Mh, 0)
+  reg.D1[t,]    <- (MAG - Mref)*log10(R)
+  reg.D2[t,]    <- log10(R)
+  reg.D3[t,]    <- R
+}
+
+reg.SS      <- ifelse(SoF=="SS", 1, 0)
+reg.TF      <- ifelse(SoF=="TF", 1, 0)
+reg.S       <- ifelse(VS30<=1500, log10(VS30/800), log10(1500/800))
+
+# Create the fd objects by projecting the regressors over an appropriate functional basis
+
+# reg.Mlow
+matplot(t.points, reg.Mlow, type='l')
+
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
 esp        <- seq(-1,12, by=1)
 lambda.vec <- sort(10^-esp)
 gcv.vec    <- numeric(length(lambda.vec))
@@ -350,7 +643,7 @@ plot(Mhigh.fd)
 # R
 matplot(t.points, R.mat, type='l', main='True R')
 
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
 esp        <- seq(-1,12, by=1)
 lambda.vec <- sort(10^-esp)
 gcv.vec    <- numeric(length(lambda.vec))
@@ -368,7 +661,7 @@ plot(R.fd, main='Smoothed R')
 
 # Look what happens for short and long distances: indexes 21 - 36
 r <- R.mat[,21]
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
 esp        <- seq(-1,12, by=1)
 lambda.vec <- sort(10^-esp)
 gcv.vec    <- numeric(length(lambda.vec))
@@ -386,7 +679,7 @@ plot(r.fd)
 lines(t.points, r, type='l', xlab='Period', ylab='R - idx 21', col='red')
 
 r <- R.mat[,36]
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
 esp        <- seq(-1,12, by=1)
 lambda.vec <- sort(10^-esp)
 gcv.vec    <- numeric(length(lambda.vec))
@@ -406,7 +699,7 @@ lines(t.points, r, type='l', xlab='Period', ylab='R - idx 21', col='red')
 # reg.D1
 matplot(t.points, reg.D1, type='l')
 
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
 esp        <- seq(-1,12, by=1)
 lambda.vec <- sort(10^-esp)
 gcv.vec    <- numeric(length(lambda.vec))
@@ -425,7 +718,7 @@ plot(D1.fd)
 # reg.D2
 matplot(t.points, reg.D2, type='l')
 
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
 esp        <- seq(-1,12, by=1)
 lambda.vec <- sort(10^-esp)
 gcv.vec    <- numeric(length(lambda.vec))
@@ -444,7 +737,7 @@ plot(D2.fd)
 # reg.D3
 matplot(t.points, reg.D3, type='l')
 
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=4)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
 esp        <- seq(-1,12, by=1)
 lambda.vec <- sort(10^-esp)
 gcv.vec    <- numeric(length(lambda.vec))
@@ -461,7 +754,7 @@ D3.fd <- smooth.basis(t.points, reg.D3, fPar)$fd
 plot(D3.fd)
 
 # Project constant coefficients over a constant basis
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=t.points, norder=1)
+basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=1)
 
 reg.SS <- t(replicate(N, reg.SS))
 SS.fd <- smooth.basis(t.points, reg.SS, fPar)$fd
@@ -480,7 +773,7 @@ plot(S.fd)
 intercept <- t(replicate(N, rep(1,n)))
 intercept.fd <- smooth.basis(t.points, intercept, basis)$fd
 
-## Finally build the list of functional regressors -----------------------------------------
+## Finally build the list of functional regressors
 xlist <- list(intercept.fd, Mlow.fd, Mhigh.fd, SS.fd, TF.fd, D1.fd, D2.fd, D3.fd, S.fd)
-save(xlist, file='DATA/xlist.RData')
+save(xlist, file='DATA/xlist-log.RData')
 

@@ -1,4 +1,4 @@
-Path_unified <- function(my.dir, name_dir, data, t.idx)
+Path_unified <- function(my.dir, name_dir, data, t.idx, set.log=FALSE)
 {
   library(latex2exp)
   library(wesanderson)
@@ -80,7 +80,12 @@ Path_unified <- function(my.dir, name_dir, data, t.idx)
   XX          <- cbind(reg.D_1, reg.D_2, reg.D_3)
   
   t <- t.points[t.idx]
-  t.plot <- round(10^t, digits=2)
+  if(set.log)
+  {
+    t.plot <- round(10^t, digits=2)
+  } else {
+    t.plot <- t
+  }
   
   c1.T <- eval.fd(t,c1.est)
   c2.T <- eval.fd(t,c2.est)

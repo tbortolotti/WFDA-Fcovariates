@@ -118,10 +118,10 @@ my_reconstructKneipLiebl <- function(Ly,
                                      progrbar     = FALSE){
   
   ## Useful methods ------------------------------------------------
-  source('KL/my_fpca.R')
-  source('KL/my_gcvKneipLiebl.R')
-  source('KL/my_reconstKneipLiebl_fun.R')
-  source('KL/my_PACE_fun.R')
+  source('methods/Reconstruction/KL/my_fpca.R')
+  source('methods/Reconstruction/KL/my_gcvKneipLiebl.R')
+  source('methods/Reconstruction/KL/my_reconstKneipLiebl_fun.R')
+  source('methods/Reconstruction/KL/my_PACE_fun.R')
   
   ##
   method <- switch(method, 
@@ -264,7 +264,7 @@ my_reconstructKneipLiebl <- function(Ly,
                                        argvalsO = fpca_obj$argvalsO[[i]], 
                                        method   = 4,
                                        progrbar = progrbar)
-      }else{K_vec[i] <- K}
+      }else{K_vec[i] <- K[i]}
       ##
       smooth.fit        <- suppressMessages(stats::smooth.spline(y=c(stats::na.omit(c(fpca_obj$Y[reconst_fcts[i],]))), x=fpca_obj$obs_argvalsO[[i]]))
       fragmO_presmooth  <- stats::predict(smooth.fit, fpca_obj$argvalsO[[i]])$y
@@ -301,18 +301,18 @@ my_reconstructKneipLiebl <- function(Ly,
       ##
       if(is.null(K)){
         K_vec[i]   <- my_gcvKneipLiebl(fpca_obj = fpca_obj, 
-                                    argvalsO = fpca_obj$argvalsO[[i]], 
-                                    method   = 5,
-                                    progrbar = progrbar)
+                                       argvalsO = fpca_obj$argvalsO[[i]], 
+                                       method   = 5,
+                                       progrbar = progrbar)
       }else{K_vec[i] <- K}
       ##
       result_tmp <- my_reconstKneipLiebl_fun(mu          = fpca_obj$mu, 
-                                          argvals     = fpca_obj$argvals, 
-                                          argvalsO    = fpca_obj$argvalsO[[i]], 
-                                          scoresO     = fpca_obj$CE_scoresO[[i]], 
-                                          efun_reconst= fpca_obj$efun_reconst[[i]],
-                                          fragmO      = NULL, 
-                                          K           = K_vec[i])
+                                             argvals     = fpca_obj$argvals, 
+                                             argvalsO    = fpca_obj$argvalsO[[i]], 
+                                             scoresO     = fpca_obj$CE_scoresO[[i]], 
+                                             efun_reconst= fpca_obj$efun_reconst[[i]],
+                                             fragmO      = NULL, 
+                                             K           = K_vec[i])
       ##
       Y_reconst_list[[i]]  <- result_tmp[['y_reconst']]
       U_reconst_list[[i]]  <- result_tmp[['x_reconst']]
@@ -374,7 +374,7 @@ my_reconstructKneipLiebl <- function(Ly,
   }
   ##
   if(!is.null(nRegGrid)){
-    ## Evaluate the reconstruced functions at a regular gird of length nRegGrid
+    ## Evaluate the reconstructed functions at a regular grid of length nRegGrid
     xout <- seq(from = min(fpca_obj$argvals), to = max(fpca_obj$argvals), len=nRegGrid)
     ##
     for(i in 1:length(reconst_fcts)){ # i <- 1

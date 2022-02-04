@@ -1,10 +1,10 @@
 
 
 
-create_weights <- function(curves, t.points, loc.par=0.3, reconst_fcts, T_hp)
+create_weights <- function(curves.rec, t.points, breaks, loc.par=1, reconst_fcts, Thp, set.log=FALSE)
 {
   ## Utilities -----------------------------------------------------------------
-  n <- dim(curves)[2]
+  n <- dim(curves.rec)[2]
   
   ## Building the weights ------------------------------------------------------
   ## For each observation, evaluate mu so as to be loc.par after
@@ -18,46 +18,55 @@ create_weights <- function(curves, t.points, loc.par=0.3, reconst_fcts, T_hp)
   
   for(i in 1:length(reconst_fcts))
   {
-    t.max    <- T_hp[reconst_fcts[i]]
+    t.max    <- Thp[reconst_fcts[i]]
     imax     <- tail(which(t.points<=t.max),n=1)
     imax.new <- tail(which(tt<=t.max),n=1)
     T.max    <- t.points[imax]
     
-    fix.par  <- sd(curves[imax,-reconst_fcts])
-    
-    loc      <- T.max + loc.par
+    fix.par  <- sd(curves.rec[imax,-reconst_fcts])
     scale    <- 1/fix.par
+    loc      <- T.max + loc.par
     
-    y        <- rep(1,imax.new)
-    x        <- tt[(imax.new+1):length(tt)]
+    if(set.log)
+    {
+      loc    <- 10^T.max + loc.par
+      x      <- 10^tt[(imax.new+1):length(tt)]
+    } else {
+      loc    <- T.max + loc.par
+      x      <- tt[(imax.new+1):length(tt)]
+    }
+    
     y.x      <- 1/(1+exp((x - loc)/scale)) + (1 - 1/(1+exp((x[1]-loc)/scale)))
+    y        <- rep(1,imax.new)
     y        <- c(y,y.x)
     
     wgts.obs[,reconst_fcts[i]] <- y
   }
   
   ## Weights as functional data -----------------------------------------
-  ## Smooth the weights on a B-spline basis of order 2
-  
-  breaks <- t.points
-  
-  basis  <- create.bspline.basis(rangeval=range(breaks), breaks=breaks, norder=3)
-  
-  # lambda.vec <- seq(0.01, 0.1, by=0.01)
-  # gcv.vec    <- numeric(length(lambda.vec))
-  # for(j in 1:length(lambda.vec))
-  # {
-  #   fPar <- fdPar(fdobj=basis, Lfdobj=0, lambda=lambda.vec[j])
-  #   gcv.vec[j] <- sum(smooth.basis(tt, wgts.obs, fPar)$gcv)/n
-  # }
-  # lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
-  
-  fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.1)
-  wgts.s  <- smooth.basis(tt, wgts.obs, fPar)
-  wgts.fd <- wgts.s$fd
-  
-  wgts.ev <- eval.fd(t.points, wgts.fd)
-  
+  ## Smooth the weights on a B-spline basis of degree 2
+  #basis  <- create.bspline.basis(rangeval=range(breaks), breaks=breaks, norder=4)
+  if(set.log)
+  {
+    basis  <- create.bspline.basis(rangeval=range(breaks), breaks=breaks, norder=3)
+    # exp.vec <- seq(-7,2,by=1)
+    # lambda.vec <- 10^exp.vec
+    # gcv.vec    <- numeric(length(lambda.vec))
+    # for(j in 1:length(lambda.vec))
+    # {
+    #   fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=lambda.vec[j])
+    #   gcv.vec[j] <- sum(smooth.basis(tt, wgts.obs, fPar)$gcv)/n
+    # }
+    # lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+    fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.1)
+    wgts.fd  <- smooth.basis(tt, wgts.obs, fPar)$fd
+    wgts.ev <- eval.fd(t.points, wgts.fd)
+  } else {
+    basis  <- create.bspline.basis(rangeval=range(breaks), breaks=breaks, norder=2)
+    wgts.fd  <- smooth.basis(tt, wgts.obs, basis)$fd
+    wgts.ev <- eval.fd(t.points, wgts.fd)
+  }
+
   ## Output -------------------------------------------------------------
   
   out        <- list(wgts.ev, wgts.fd)

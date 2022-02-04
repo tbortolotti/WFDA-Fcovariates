@@ -28,11 +28,29 @@ load('DATA/obs.RData')
 load('DATA/T_hp.RData')
 load('DATA/xlist.RData')
 load('DATA/data.RData')
-#load('DATA/loc_1/lambda_fixed.RData')
 load('DATA/events.RData')
 
-t.points <- log10(T.period)
-t.points[1] <- -3
+## Load Functions ----------------------------------------------------------
+source('methods/find_obs_inc.R')
+source('methods/extrapolation.R')
+source('methods/create_weights.R')
+source('methods/wt_bsplinesmoothing.R')
+
+source('methods/Regression/weighted_fRegress.R')
+source('methods/Regression/my_predict_fRegress.R')
+source('methods/Regression/eval_MSE.R')
+
+## Utilities -------------------------------------------------------------------
+n <- dim(curves)[2]
+q <- length(xlist)
+reconst_fcts  <- find_obs_inc(Y = curves)
+
+loc <- 2
+t.points <- T.period
+
+## Set values for smoothing
+#breaks <- c(seq(0,0.5,0.05), seq(0.6,1,0.1), seq(2,10,1))
+breaks <- c(seq(0,1,0.1), seq(2,10,0.5))
 
 data <- list(dJB  = dJB,
              MAG  = MAG,
@@ -41,77 +59,59 @@ data <- list(dJB  = dJB,
 
 data.f <- data.frame(dJB = dJB, MAG = MAG, SoF = SoF, VS30 = VS30)
 
-## Load Functions ----------------------------------------------------------
-source('methods/find_obs_inc.R')
-source('methods/interpolation.R')
-source('methods/create_weights.R')
-source('methods/wt_bsplinesmoothing.R')
-
-source('methods/Regression/weighted_fRegress.R')
-source('methods/Regression/my_predict_fRegress.R')
-#source('Regression/my_predict_fRegress_sing.R')
-source('methods/Regression/eval_MSE.R')
-
-## Utilities -------------------------------------------------------------------
-n <- dim(curves)[2]
-q <- length(xlist)
-reconst_fcts  <- find_obs_inc(Y = curves)
-
-loc <- 0.3
-t.points <- log10(T.period)
-t.points[1] <- -3
-
-## Interpolation ---------------------------------------------------------------
-interpolate   <- interpolation(curves       = curves,
-                               t.points     = T.period,
+## Extrapolation ---------------------------------------------------------------
+extrapolate   <- extrapolation(curves       = curves,
+                               t.points     = t.points,
                                T_hp         = T_hp,
                                reconst_fcts = reconst_fcts)
-curves.interp <- interpolate$curves.rec
+curves.extrap <- extrapolate$curves.rec
 
-#matplot(T.period, curves.interp[,reconst_fcts], type='l')
-#matplot(t.points, curves.interp[,reconst_fcts], type='l')
+#matplot(T.period, curves.extrap[,reconst_fcts], type='l')
+#matplot(t.points, curves.extrap[,reconst_fcts], type='l')
 
 ## Construction of the weights -------------------------------------------------
-wgt              <- create_weights(curves        = curves.interp,
+wgt              <- create_weights(curves.rec    = curves.extrap,
                                    t.points      = t.points,
+                                   breaks        = seq(0,10,0.1),
                                    loc.par       = loc,
                                    reconst_fcts  = reconst_fcts,
-                                   T_hp          = log10(T_hp))
+                                   Thp           = T_hp)
 
 ## Smoothing -------------------------------------------------------------------
-smth             <- wt_bsplinesmoothing(curves   = curves.interp,
+smth             <- wt_bsplinesmoothing(curves   = curves.extrap,
                                         wgts.obs = wgt$wgts.obs,
                                         t.points = t.points,
+                                        breaks   = breaks,
                                         lambda   = 1e-5,
                                         set.cb   = FALSE)
-curves.interp.fd <- smth$curves.fd
+curves.extrap.fd <- smth$curves.fd
 
 #y2cmaps <- smth$y2cmaps
 #save(y2cmaps, file='DATA/y2cmaps.RData')
 
 ## Sphi for confidence bands ---------------------------------------------------
 # source('methods/build_Sphi.R')
-# build_Sphi(y2cmaps = smth$y2cmaps, curves = curves.interp.fd)
+# build_Sphi(y2cmaps = smth$y2cmaps, curves = curves.extrap.fd)
 
 ## B-list ----------------------------------------------------------------------
-load('blist_options/blist_redo.RData')
+load('blist_options/blist-newestbreaks.RData')
 
 ## Regression and beta estimation ----------------------------------------------
-mod <- weighted_fRegress(y            = curves.interp.fd,
+mod <- weighted_fRegress(y            = curves.extrap.fd,
                          xfdlist      = xlist,
                          betalist     = blist,
                          wgts         = wgt$wgts.fd)
 
 ## y_hat   ---------------------------------------------------------------------
-curves.interp.hat   <- my_predict_fRegress(mod          = mod,
+curves.extrap.hat   <- my_predict_fRegress(mod          = mod,
                                            xlist        = xlist,
                                            t.points     = t.points)
-curves.interp.hat.v <- eval.fd(t.points, curves.interp.hat)
+curves.extrap.hat.v <- eval.fd(t.points, curves.extrap.hat)
 
 ## MSE evaluation - through an event-wise crossvalidation ----------------------
 source('methods/Regression/pwMSE.R')
 pwMSE.val <- pwMSE(curves    = curves,
-                   curves.fd = curves.interp.fd,
+                   curves.fd = curves.extrap.fd,
                    xlist     = xlist,
                    t.points  = t.points,
                    events    = event.id,
@@ -119,7 +119,8 @@ pwMSE.val <- pwMSE(curves    = curves,
                    B         = 10,
                    wgts.fd   = wgt$wgts.fd,
                    set.ITA18 = TRUE,
-                   data      = data.f)
+                   data.f    = data.f)
+save(pwMSE.val, file='Results/period/pwMSE_val.RData')
 
 #### DIAGNOSTIC ----------------------------------------------------------------
 
@@ -129,7 +130,7 @@ library(Matrix)
 source("methods/stderrors.R")
 load('DATA/Sphi.RData')
 
-res       <- curves.interp.hat - curves.interp.fd
+res       <- curves.extrap.hat - curves.extrap.fd
 E         <- t(eval.fd(T.period, res))
 SigmaE    <- 1/(n-q)*t(E)%*%E
 
@@ -142,8 +143,8 @@ st.err <- stderrors(Sphi         = Sphi,
 save(st.err, file='DATA/st_err.RData')
 
 ## PLOTS -----------------------------------------------------------------------
-name_dir     <- paste0("fitITA18")
-input        <- list(xlist    = xlist,
+name_dir     <- paste0("period-prova")
+input        <- list(xlist    = xlist.new,
                      t.points = t.points,
                      blist    = blist)
 
@@ -168,19 +169,23 @@ y.hat.ITA18 <- mod.ITA18$y.hat.ITA18
 
 ## Plot sigma comparison
 source('methods/plots/plot_sigma.R')
+t.plot <- log10(T.period)
+t.plot[1] <- -3
 
-res       <- curves.interp.hat - curves.interp.fd
+res       <- curves.extrap.hat - curves.extrap.fd
 E         <- t(eval.fd(t.points, res))
 SigmaE    <- 1/(n-q-1)*t(E)%*%E
 
-plot_sigma(SigmaE, sigma.ITA18, t.points, name_dir)
+plot_sigma(SigmaE, sigma.ITA18, t.plot, name_dir)
 
 
 ## Plot MSE comparison
 source('methods/plots/plotMSE_pw.R')
+t.plot <- log10(T.period)
+t.plot[1] <- -3
 plotMSE_pw(MSE.vec   = pwMSE.val$MSE_t,
            MSE.ita18 = pwMSE.val$MSE_t18,
-           t.points  = t.points,
+           t.points  = t.plot,
            name_dir  = name_dir)
 
 # source('plotMSE_pw_discuss.R')
@@ -199,7 +204,7 @@ model_comparison(mod.fit    = mod,
                  name_dir   = name_dir,
                  t.idxs     = t.idxs,
                  data       = data.f,
-                 curves     = curves.interp,
+                 curves     = curves.extrap,
                  corrective = FALSE)
 
 # source("model_comparison_discuss.R")
@@ -209,7 +214,7 @@ model_comparison(mod.fit    = mod,
 #                          name_dir   = name_dir,
 #                          t.idxs     = t.idxs,
 #                          data       = data,
-#                          curves     = curves.interp,
+#                          curves     = curves.extrap,
 #                          set.log    = FALSE)
 
 ## Prediction comparison with ITA18 corrected
@@ -220,7 +225,7 @@ model_comparison_corrected(mod.fit    = mod,
                            name_dir   = name_dir,
                            t.idxs     = t.idxs,
                            data       = data,
-                           curves     = curves.interp)
+                           curves     = curves.extrap)
 
 ## Near source comparison with ITA18
 source("methods/plots/plot_nearsource_comparison.R")
@@ -230,7 +235,7 @@ plot_nearsource_comparison(mod.fit    = mod,
                            name_dir   = name_dir,
                            t.idxs     = t.idxs,
                            data       = data,
-                           curves     = curves.interp)
+                           curves     = curves.extrap)
 
 # source("plot_nearsource_comparison_discuss.R")
 # t.idxs <- c(2,7)
@@ -239,7 +244,7 @@ plot_nearsource_comparison(mod.fit    = mod,
 #                                    name_dir   = name_dir,
 #                                    t.idxs     = t.idxs,
 #                                    data       = data,
-#                                    curves     = curves.interp,
+#                                    curves     = curves.extrap,
 #                                    set.log    = FALSE)
 
 ## Magnitude check --> a check that the spectral acceleration does not diminish
@@ -253,7 +258,7 @@ magnitude_check(mod.fit    = mod,
                 t.idxs     = t.idxs,
                 magnitudes = magnitudes, 
                 data       = data.f,
-                curves     = curves.interp)
+                curves     = curves.extrap)
 
 ## Confidence bands
 load('WFA/DATA/st_err_loc1.RData')

@@ -1,8 +1,8 @@
 my_fpca <- function(Ly, Lu, reconst_fcts = NULL, pev = 0.99, CEscores = FALSE, PACE = FALSE, PACE_E0 = FALSE, center = TRUE, maxbins = NULL){
   
   ## Useful method ------------------------------------------------
-  source('KL/my_irreg2mat.R')
-  source('KL/my_quadWeights.R')
+  source('methods/Reconstruction/KL/my_irreg2mat.R')
+  source('methods/Reconstruction/KL/my_quadWeights.R')
   
   ##
   n      <- length(Ly)

@@ -1,9 +1,9 @@
 my_gcvKneipLiebl <- function(fpca_obj, argvalsO, method, pev = 0.99, progrbar = FALSE){
   
   ## Useful methods --------------------------------------------------
-  source('KL/is_error.R')
-  source('KL/my_quadWeights.R')
-  source('KL/my_reconstKneipLiebl_fun.R')
+  source('methods/Reconstruction/KL/is_error.R')
+  source('methods/Reconstruction/KL/my_quadWeights.R')
+  source('methods/Reconstruction/KL/my_reconstKneipLiebl_fun.R')
   
   ##
   Y           <- fpca_obj$Y # data pre-processed by irreg2mat()

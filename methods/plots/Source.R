@@ -1,4 +1,4 @@
-Source <- function(my.dir, name_dir, data, t.idx)
+Source <- function(my.dir, name_dir, data, t.idx, set.log=FALSE)
 {
   library(latex2exp)
   library(wesanderson)
@@ -79,7 +79,13 @@ Source <- function(my.dir, name_dir, data, t.idx)
   XX          <- cbind(reg.M_l, reg.M_h, reg.SS, reg.TF)
   
   t <- t.points[t.idx]
-  t.plot <- round(10^t, digits=2)
+  if(set.log)
+  {
+    t.plot <- round(10^t, digits=2)
+  } else {
+    t.plot <- t
+  }
+  
   
   b1.T <- eval.fd(t,b1.est)
   b2.T <- eval.fd(t,b2.est)

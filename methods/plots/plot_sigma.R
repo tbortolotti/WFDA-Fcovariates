@@ -25,12 +25,12 @@ plot_sigma <- function(SigmaE, sigma.ITA18, t.points, name_dir)
     #ggtitle(paste0("MSE -") +
     theme_bw() +
     theme(plot.title = element_text(hjust = 0.5)) + 
-    theme(text = element_text(size = 20)) +
+    theme(text = element_text(size = 12)) +
     #theme(axis.title.x = element_text(size = 16)) +
-    theme(axis.text.x = element_text(size = 20)) +
+    theme(axis.text.x = element_text(size = 12)) +
     #theme(axis.title.y = element_text(size = 16)) +
-    theme(axis.text.y = element_text(size = 20)) +
-    theme(legend.text = element_text(size = 20)) +
+    theme(axis.text.y = element_text(size = 12)) +
+    theme(legend.text = element_text(size = 12)) +
     xlab("Period [s]") + ylab(TeX('$\\hat{\\sigma}$'))
   
   ggsave(filename = paste0("sigma_comparison.png"),

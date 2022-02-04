@@ -42,15 +42,6 @@ save_plots <- function(mod.fit, input, name_dir)
   c3.est <- mod.fit$betaestlist[[8]]$fd
   k0.est <- mod.fit$betaestlist[[9]]$fd
   
-  # Evaluation of important quantities -----------------------------------------
-  ## for each residual, evaluate the integral. Generate a vector to
-  ## save the values of these integrals
-  onesbasis <- create.constant.basis(rangeval)
-  onesfd    <- fd(1,onesbasis)
-  
-  res.integrals  <- inprod(res, onesfd, 0, 0, rangeval)
-  yfit.integrals <- inprod(y.hat, onesfd, 0, 0, rangeval)
-  
   # Plots ----------------------------------------------------------------------
   
   # True curves

@@ -1,4 +1,4 @@
-Site <- function(my.dir, name_dir, data, t.idx)
+Site <- function(my.dir, name_dir, data, t.idx, set.log=FALSE)
 {
   library(latex2exp)
   library(wesanderson)
@@ -70,7 +70,12 @@ Site <- function(my.dir, name_dir, data, t.idx)
   VVS <- seq(range(X_red)[1], range(X_red)[2], length.out=100)
 
   t <- t.points[t.idx]
-  t.plot <- round(10^t, digits=2)
+  if(set.log)
+  {
+    t.plot <- round(10^t, digits=2)
+  } else {
+    t.plot <- t
+  }
   
   k0.T <- eval.fd(t,k0.est)
   

@@ -1,12 +1,11 @@
 
 
-wt_bsplinesmoothing <- function(curves, wgts.obs, t.points, lambda=NULL, set.cb = FALSE)
+wt_bsplinesmoothing <- function(curves, wgts.obs, t.points, breaks, lambda=NULL, set.cb = FALSE)
 {
-  ## Utilities ------------------------------------------------------------
+  ## Utilities -----------------------------------------------------------------
   n      <- dim(curves)[2]
   
-  ## Cubic B-spline basis ---------------------------------------------------
-  breaks <- t.points
+  ## Cubic B-spline basis ------------------------------------------------------
   basis  <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
   
   L      <- basis$nbasis
@@ -39,8 +38,8 @@ wt_bsplinesmoothing <- function(curves, wgts.obs, t.points, lambda=NULL, set.cb 
   
   # smooth curves
   curves.scoef  <- matrix(data=0, nrow=L, ncol=n)
-  TT <- length(t.points)
-  y2cmaps <- array(data=0, dim=c(L,TT,n))
+  N <- length(t.points)
+  y2cmaps <- array(data=0, dim=c(L,N,n))
   pb <- progress_bar$new(total=n)
   for(i in 1:n)
   {
