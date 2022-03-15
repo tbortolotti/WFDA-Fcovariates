@@ -10,3 +10,10 @@ Results
 Bootstrap
 .Rproj.user
 blist_options
+
+## Simulation
+Simulation/Final-boxplots
+Simulation/main-simulation-CV.R
+Simulation/Old-Results
+Simulation/plot-simulation-results.R
+Simulation/prese-images.R
