@@ -51,8 +51,10 @@ my_gcvKneipLiebl <- function(fpca_obj, argvalsO, method, pev = 0.99, progrbar = 
     npc               <- ifelse(is.null(pev), npc, which(cumsum(evalues[evalues>0])/sum(evalues[evalues>0])>=pev)[1])
     ##
     efunctionsO       <- matrix(Winvsqrt %*% eigen(V, symmetric = TRUE)$vectors[, seq(len = npc)], nrow = nrow(V), ncol = npc)
-    evaluesO          <- evalues[1:npc]  
-    D.inv             <- diag(1/evaluesO)
+    evaluesO          <- evalues[1:npc] 
+    D.inv             <- diag(npc)
+    diag(D.inv)       <- 1/evaluesO
+    #D.inv             <- diag(1/evaluesO)
     Z                 <- efunctionsO
     ## ##################################################################
     ## Reconstructive eigenfunctions

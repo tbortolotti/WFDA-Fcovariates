@@ -63,8 +63,8 @@ extrapolate   <- extrapolation(curves       = curves,
                                reconst_fcts = reconst_fcts)
 curves.extrap <- extrapolate$curves.rec
 
-#matplot(T.period, curves.extrap[,reconst_fcts], type='l')
-#matplot(t.points, curves.extrap[,reconst_fcts], type='l')
+# matplot(T.period, curves.extrap[,reconst_fcts], type='l')
+# matplot(t.points, curves.extrap[,reconst_fcts], type='l')
 
 # plot(T.period, curves[,reconst_fcts[1]], type='l', lwd=3, col=pal[2], xlab='T', ylab="log10(SA)",
 #      ylim=range(curves.extrap[,reconst_fcts[1]]))
@@ -100,10 +100,6 @@ curves.extrap.fd <- smth$curves.fd
 
 ## B-list ----------------------------------------------------------------------
 load('blist_options/log/blist.RData')
-
-blist.prova <- blist
-blist.prova[[7]]$lambda <- 0.1
-blist <- blist.prova
 
 ## Regression and beta estimation ----------------------------------------------
 mod <- weighted_fRegress(y            = curves.extrap.fd,

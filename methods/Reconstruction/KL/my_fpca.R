@@ -189,7 +189,8 @@ my_fpca <- function(Ly, Lu, reconst_fcts = NULL, pev = 0.99, CEscores = FALSE, P
     efunctionsO[[i]]  <- matrix(Winvsqrt %*% eigen(VO, symmetric = TRUE)$vectors[, seq(len = npcO)], nrow = nrow(VO), ncol = npcO)
     evaluesO[[i]]     <- evalO[1:npcO]  
     ##
-    D.inv             <- diag(1/evaluesO[[i]])
+    D.inv             <- diag(npcO)
+    diag(D.inv)       <- 1/evaluesO[[i]]
     Z                 <- efunctionsO[[i]]
     Y.cent            <- c(Y.pred[i,,drop=FALSE] - matrix(mu, 1, D))
     obs_locO          <- match(names(c(stats::na.omit((Y.pred[i,])))), as.character(argvalsO[[i]]))

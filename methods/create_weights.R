@@ -24,7 +24,7 @@ create_weights <- function(curves.rec, t.points, breaks, loc.par=1, reconst_fcts
     T.max    <- t.points[imax]
     
     fix.par  <- sd(curves.rec[imax,-reconst_fcts])
-    scale    <- 1/fix.par
+    scale    <- 1/(fix.par*10)
     loc      <- T.max + loc.par
     
     if(set.log)
