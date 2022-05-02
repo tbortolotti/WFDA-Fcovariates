@@ -1,11 +1,11 @@
-create_weights_new <- function(curves.rec, t.points, breaks, fix.par=2, reconst_fcts, Thp)
+create_zero_weights <- function(curves.rec, t.points, breaks, fix.par=1000, reconst_fcts, Thp)
 {
   ## Utilities -----------------------------------------------------------------
   n <- dim(curves.rec)[2]
   
   ## Building the weights ------------------------------------------------------
   tt <- t.points
-
+  
   wgts.obs <- matrix(data=1, nrow=length(tt), ncol=n)
   
   for(i in 1:length(reconst_fcts))

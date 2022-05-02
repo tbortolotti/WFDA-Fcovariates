@@ -105,10 +105,6 @@ beep()
 name.file <- paste0('Simulation/Results/repeated-simulations-oldwgts/',method,'-0wgts.RData')
 save(MSE, beta0.est, beta1.est, beta2.est, file=name.file)
 
-# name.file <- paste0('Simulation/Results/repeated-simulations-smootherr/',method,'-se',smooth.noise,'_nowgts.RData')
-# save(MSE, beta0.est, beta1.est, beta2.est, file=name.file)
-
-
 ## Simulation for smoothing ------------------------------------------------------------------
 source('Simulation/methods/workflow_weighted_smoothing.R')
 source('Simulation/methods/generate_data.R')

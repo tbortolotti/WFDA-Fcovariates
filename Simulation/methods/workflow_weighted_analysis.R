@@ -7,14 +7,13 @@ workflow_weighted_analysis <- function(b,
                                        curves.true.fd,
                                        xlist,
                                        method = c('Kraus', 'KLNoAl' ,'KLAl', NULL),
-                                       fix.par = 2,
+                                       fix.par = 10,
                                        wgts.flag = TRUE)
 {
   
   ## Methods
   source('methods/find_obs_inc.R')
-  source('Simulation/methods/create_weights_simulation.R')
-  source('Simulation/methods/create_old_weights.R')
+  source('Simulation/methods/create_weights.R')
   source('Simulation/methods/create_zero_weights.R')
   source('methods/wt_bsplinesmoothing.R')
   source('methods/Reconstruction/my_reconstructKneipLiebl.R')
@@ -150,22 +149,12 @@ workflow_weighted_analysis <- function(b,
   ## Construction of the weights -----------------------------------------------
   if(is.numeric(fix.par))
   {
-    # wgt       <- create_weights_simulation(curves.rec    = curves.train.rec,
-    #                                        t.points      = t.points,
-    #                                        breaks        = breaks,
-    #                                        fix.par       = fix.par,
-    #                                        reconst_fcts  = reconst_fcts,
-    #                                        Thp           = T_hp.train)
-    # 
-    # plot(wgt$wgts.fd, ylim=c(0,1))
-    # title(main=paste0('Parameter ', fix.par))
-    # 
-    wgt       <- create_old_weights(curves.rec    = curves.train.rec,
-                                    t.points      = t.points,
-                                    breaks        = breaks,
-                                    fix.par       = fix.par,
-                                    reconst_fcts  = reconst_fcts,
-                                    Thp           = T_hp.train)
+    wgt       <- create_weights(curves.rec    = curves.train.rec,
+                                t.points      = t.points,
+                                breaks        = breaks,
+                                fix.par       = fix.par,
+                                reconst_fcts  = reconst_fcts,
+                                Thp           = T_hp.train)
     
     # plot(wgt$wgts.fd, ylim=c(0,1))
     # title(main=paste0('Parameter ', fix.par))

@@ -1,4 +1,4 @@
-create_old_weights <- function(curves.rec, t.points, breaks, fix.par, reconst_fcts, Thp)
+create_weights <- function(curves.rec, t.points, breaks, fix.par, reconst_fcts, Thp)
 {
   ## Utilities -----------------------------------------------------------------
   n <- dim(curves.rec)[2]
@@ -79,9 +79,7 @@ create_old_weights <- function(curves.rec, t.points, breaks, fix.par, reconst_fc
   
   # 
   ## Weights as functional data -----------------------------------------
-  ## Smooth the weights on a B-spline basis of degree 2
-  #basis  <- create.bspline.basis(rangeval=range(breaks), breaks=breaks, norder=4)
-  
+  ## Smooth the weights on a B-spline basis of order 2
   basis  <- create.bspline.basis(rangeval=range(breaks), breaks=breaks, norder=2)
   wgts.fd  <- smooth.basis(tt, wgts.obs, basis)$fd
   

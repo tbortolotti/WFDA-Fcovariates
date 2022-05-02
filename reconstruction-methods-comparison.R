@@ -27,7 +27,7 @@ load('DATA/events.RData')
 load('DATA/blistt_latest.RData')
 
 ## Function for the evaluation of the MSE for each proposed method
-source('methods/Reconstruction/methods_workflow_new.R')
+source('methods/Reconstruction/methods_workflow.R')
 
 # Logarithm of the period
 t.points    <- log10(T.period)
@@ -69,20 +69,20 @@ for(a in 1:A) # a=1
   for(b in 1:B) # b=1
   {
     print(paste0("Par:", a, " b:",b))
-    method_evaluation <- methods_workflow_new(b          = b,
-                                              T.period   = T.period,
-                                              t.points   = t.points,
-                                              breaks     = t.points,
-                                              T_hp       = T_hp,
-                                              log.Thp    = log.Thp,
-                                              curves     = curves,
-                                              events     = event.id,
-                                              B          = B,
-                                              xlist      = xlist,
-                                              blist      = blist,
-                                              method     = method,
-                                              fix.par    = fix.par,
-                                              wgts.flag  = TRUE)
+    method_evaluation <- methods_workflow(b          = b,
+                                          T.period   = T.period,
+                                          t.points   = t.points,
+                                          breaks     = t.points,
+                                          T_hp       = T_hp,
+                                          log.Thp    = log.Thp,
+                                          curves     = curves,
+                                          events     = event.id,
+                                          B          = B,
+                                          xlist      = xlist,
+                                          blist      = blist,
+                                          method     = method,
+                                          fix.par    = fix.par,
+                                          wgts.flag  = TRUE)
     
     MSE_cv[,b,a] <- method_evaluation$MSE_pw
     MSE_glob.list[[a]][[b]] <- method_evaluation$MSE_glob
@@ -166,20 +166,20 @@ beta9.list <- list()
 for(b in 1:B) # b=1
 {
   print(paste0("b: ",b))
-  method_evaluation <- methods_workflow_new(b          = b,
-                                            T.period   = T.period,
-                                            t.points   = t.points,
-                                            breaks     = t.points,
-                                            T_hp       = T_hp,
-                                            log.Thp    = log.Thp,
-                                            curves     = curves,
-                                            events     = event.id,
-                                            B          = B,
-                                            xlist      = xlist,
-                                            blist      = blist,
-                                            method     = method,
-                                            fix.par    = fix.par,
-                                            wgts.flag  = TRUE)
+  method_evaluation <- methods_workflow(b          = b,
+                                        T.period   = T.period,
+                                        t.points   = t.points,
+                                        breaks     = t.points,
+                                        T_hp       = T_hp,
+                                        log.Thp    = log.Thp,
+                                        curves     = curves,
+                                        events     = event.id,
+                                        B          = B,
+                                        xlist      = xlist,
+                                        blist      = blist,
+                                        method     = method,
+                                        fix.par    = fix.par,
+                                        wgts.flag  = TRUE)
   
   MSE_cv[,b,1] <- method_evaluation$MSE_pw
   MSE_glob.list[[1]][[b]] <- method_evaluation$MSE_glob

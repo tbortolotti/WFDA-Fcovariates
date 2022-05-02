@@ -1,6 +1,7 @@
 methods_workflow <- function(b,
                              T.period,
                              t.points,
+                             breaks,
                              T_hp,
                              log.Thp,
                              curves,
@@ -8,28 +9,29 @@ methods_workflow <- function(b,
                              B,
                              xlist,
                              blist,
-                             method = c('extrapolation', 'extrapolation-noweight',
-                                        'Kraus1', 'Kraus2', 'KLNoAl' ,'KLAl'),
-                             loc=NULL)
+                             method = c('extrapolation', 'KLAl'),
+                             fix.par=NULL,
+                             wgts.flag = TRUE)
+                                 
 {
   
   ## Methods
   source('methods/find_obs_inc.R')
   source('methods/extrapolation.R')
+  source('methods/create_zero_weights.R')
   source('methods/create_weights.R')
   source('methods/wt_bsplinesmoothing.R')
-  source('methods/Reconstruction/my_reconstructKraus1.R')
-  source('methods/Reconstruction/finegrid_evaluation.R')
   source('methods/Reconstruction/my_reconstructKneipLiebl.R')
   
-  source('methods/Regression/lambda_select.R')
   source('methods/Regression/weighted_fRegress.R')
+  source('methods/Regression/unwgt_fRegress.R')
   source('methods/Regression/my_predict_fRegress.R')
   source('methods/Regression/eval_MSE.R')
   
   ## Utilities for the identification of the b-th batch
   n      <- dim(curves)[2]
-  breaks <- c(seq(0,1,0.1), seq(2,10,0.5))
+  p      <- length(xlist)
+  
   #### Separate training and test set ------------------------------------------
   unique.events <- unique(events)
   n.events <- length(unique.events)
@@ -44,19 +46,35 @@ methods_workflow <- function(b,
   test <- (events %in% test.events)
   train <- (!test)
   
+  n.test <- sum(test)
+  
   curves.test    <- curves[,test]
   curves.train   <- curves[,train]
   
   # Create xlist.test and xlist.train
   xlist.test  <- list()
   xlist.train <- list()
+  
   for(i in 1:length(xlist))
   {
-    xlist.test[[i]]  <- xlist[[i]]
-    xlist.test[[i]]$coefs  <- xlist[[i]]$coefs[,test]
-    
-    xlist.train[[i]] <- xlist[[i]]
-    xlist.train[[i]]$coefs <- xlist[[i]]$coefs[,train]
+    if (inherits(xlist[[i]], "fd"))
+    {
+      xlist.test[[i]]  <- xlist[[i]]
+      xlist.test[[i]]$coefs  <- xlist[[i]]$coefs[,test]
+      
+      xlist.train[[i]] <- xlist[[i]]
+      xlist.train[[i]]$coefs <- xlist[[i]]$coefs[,train]
+      
+    } else if (inherits(xlist[[i]], "numeric")) {
+      
+      xlist.test[[i]]  <- xlist[[i]][test]
+      xlist.train[[i]] <- xlist[[i]][train]
+      
+    } else if (inherits(xlist[[i]], "matrix" )) {
+      
+      xlist.test[[i]]  <- xlist[[i]][test,1]
+      xlist.train[[i]] <- xlist[[i]][train,1]
+    }
   }
   
   reconst_fcts   <- find_obs_inc(Y = curves.train)
@@ -74,334 +92,11 @@ methods_workflow <- function(b,
                                    t.points     = T.period,
                                    T_hp         = T_hp.train,
                                    reconst_fcts = reconst_fcts)
-    curves.extrap <- extrapolate$curves.rec
-    
-    ## Construction of the weights
-    wgt           <- create_weights(curves.rec    = curves.extrap,
-                                    t.points      = t.points,
-                                    breaks        = seq(0,10,0.1),
-                                    loc.par       = loc,
-                                    reconst_fcts  = reconst_fcts,
-                                    Thp           = log.Thp.train,
-                                    set.log       = TRUE)
-    
-    # wgt           <- create_weights_zero(curves.rec    = curves.extrap,
-    #                                      t.points      = t.points,
-    #                                      reconst_fcts  = reconst_fcts,
-    #                                      log.Thp       = log.Thp.train)
-    
-    ## Smoothing
-    smth             <- wt_bsplinesmoothing(curves   = curves.extrap,
-                                            wgts.obs = wgt$wgts.obs,
-                                            t.points = t.points,
-                                            breaks   = breaks,
-                                            lambda   = 1e-5,
-                                            set.cb   = FALSE)
-    curves.extrap.fd <- smth$curves.fd
-    
-    ### B-list
-    # fPar  <- smth$fPar
-    # blist.fixed <- list(fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar)
-    # 
-    # for(q in 1:dim(XX)[2])
-    # {
-    #   blist.fixed[[q]]$lambda <- lambda.fixed[[q]]
-    # }
-    # blist <- blist.fixed
-    
-    ### Selection of the optimal lambda for the regressors that are
-    ### affected the most by its value, in terms of resulting MSE.
-    ### These regressors are:
-    ### 1. intercept
-    ### 2. low magnitudes
-    ### 7. geometrical spreading
-    
-    ## Selection of the optimal lambda
-    #blist <- lambda_select(curves.fd     = curves.extrap.fd,
-    #                       xlist         = xlist.train,
-    #                       t.points      = T.period,
-    #                       reg.idxs      = 7,
-    #                       blist.fixed   = blist.fixed,
-    #                       XX            = X.train,
-    #                       wgts.fd       = wgt$wgts.fd,
-    #                       extrapolation = TRUE)
-    
-    ## Regression and beta estimation
-    mod <- weighted_fRegress(y            = curves.extrap.fd,
-                             xfdlist      = xlist.train,
-                             betalist     = blist,
-                             wgts         = wgt$wgts.fd)
-    
-    ## y_hat and MSE
-    curves.extrap.hat   <- my_predict_fRegress(mod          = mod,
-                                               xlist        = xlist.test,
-                                               t.points     = t.points)
-    curves.extrap.hat.v <- eval.fd(t.points, curves.extrap.hat)
-    
-    evalMSE    <- eval_MSE(curves     = curves.test,
-                           curves.hat = curves.extrap.hat.v,
-                           t.points   = t.points)
-    MSE <- evalMSE$MSE
-    MSE_reconstruction <- evalMSE$MSE_reconstruction
-    
+    curves.train.rec <- extrapolate$curves.rec
   }
   
-  #### Extrapolation and NO WEIGHT ---------------------------------------------
-  if(any(method == 'extrapolation-noweight'))
-  {
-    extrapolate   <- extrapolation(curves       = curves.train,
-                                   t.points     = T.period,
-                                   T_hp         = T_hp.train,
-                                   reconst_fcts = reconst_fcts)
-    curves.extrap <- extrapolate$curves.rec
-    
-    ## Smoothing
-    basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
-    fPar  <- fdPar(fdobj=basis, Lfdobj=2, lambda=1e-5)
-    curves.extrap.fd <- smooth.basis(t.points, curves.extrap, fPar)$fd
-    
-    ### B-list
-    # fPar  <- smth$fPar
-    # blist.fixed <- list(fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar)
-    # 
-    # for(q in 1:dim(XX)[2])
-    # {
-    #   blist.fixed[[q]]$lambda <- lambda.fixed[[q]]
-    # }
-    # blist <- blist.fixed
-    
-    ### Selection of the optimal lambda for the regressors that are
-    ### affected the most by its value, in terms of resulting MSE.
-    ### These regressors are:
-    ### 1. intercept
-    ### 2. low magnitudes
-    ### 7. geometrical spreading
-    
-    ## Selection of the optimal lambda
-    #blist <- lambda_select(curves.fd     = curves.extrap.fd,
-    #                       xlist         = xlist.train,
-    #                       t.points      = T.period,
-    #                       reg.idxs      = 7,
-    #                       blist.fixed   = blist.fixed,
-    #                       XX            = X.train,
-    #                       wgts.fd       = wgt$wgts.fd,
-    #                       extrapolation = TRUE)
-    
-    ## Regression and beta estimation
-    mod <- fRegress(y            = curves.extrap.fd,
-                    xfdlist      = xlist.train,
-                    betalist     = blist,
-                    returnMatrix = FALSE,
-                    method       = 'fRegress',
-                    sep          = '.')
-    
-    ## y_hat and MSE
-    curves.extrap.hat   <- my_predict_fRegress(mod          = mod,
-                                               xlist        = xlist.test,
-                                               t.points     = t.points)
-    curves.extrap.hat.v <- eval.fd(t.points, curves.extrap.hat)
-    
-    evalMSE    <- eval_MSE(curves     = curves.test,
-                           curves.hat = curves.extrap.hat.v,
-                           t.points   = t.points)
-    MSE <- evalMSE$MSE
-    MSE_reconstruction <- evalMSE$MSE_reconstruction
-    
-  }
+  #### Kneip-Liebl Alignment -----------------------------------------------------------
   
-  #### Kraus 1 -----------------------------------------------------------------
-  if(any(method=='Kraus1'))
-  {
-    #log.tfine         <- seq(range(t.points)[1], range(t.points)[2], by=0.03)
-    # curves.train.fine <- finegrid_evaluation(curves   = curves.train,
-    #                                          t.points = t.points,
-    #                                          lambda   = 1e-5,
-    #                                          tfine    = log.tfine)
-    
-    Kraus1            <- my_reconstructKraus1(#X_mat        = curves.train.fine,
-      #tfine        = log.tfine,
-      X_mat        = curves.train,
-      tfine        = t.points, 
-      alpha        = 0.002,
-      reconst_fcts = reconst_fcts)
-    curves.Kraus1    <- Kraus1[['X_compl_mat']]
-    
-    ## Smoothing
-    basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
-    fPar  <- fdPar(fdobj=basis, Lfdobj=2, lambda=1e-5)
-    curves.Kraus1.fd <- smooth.basis(t.points, curves.Kraus1, fPar)$fd
-    
-    # ## B-list
-    # fPar  <- smth$fPar
-    # blist.fixed <- list(fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar)
-    # 
-    # for(q in 1:dim(XX)[2])
-    # {
-    #   blist.fixed[[q]]$lambda <- lambda.fixed[[q]]
-    # }
-    # blist <- blist.fixed
-    # 
-    ## Selection of the optimal lambda
-    #blist <- lambda_select(curves.fd   = curves.Kraus1.fd,
-    #                       xlist       = xlist.train,
-    #                       t.points    = T.period,
-    #                       reg.idxs    = c(2,7,9),
-    #                       blist.fixed = blist.fixed,
-    #                       XX          = X.train)
-    
-    ## Regression and beta estimation
-    mod <- fRegress(y            = curves.Kraus1.fd,
-                    xfdlist      = xlist.train,
-                    betalist     = blist,
-                    returnMatrix = FALSE,
-                    method       = 'fRegress',
-                    sep          = '.')
-    
-    ## y_hat and MSE
-    curves.Kraus1.hat   <- my_predict_fRegress(mod          = mod,
-                                               xlist        = xlist.test,
-                                               t.points     = t.points)
-    curves.Kraus1.hat.v <- eval.fd(t.points, curves.Kraus1.hat)
-    
-    evalMSE    <- eval_MSE(curves     = curves.test,
-                           curves.hat = curves.Kraus1.hat.v,
-                           t.points   = t.points)
-    MSE <- evalMSE$MSE
-    MSE_reconstruction <- evalMSE$MSE_reconstruction
-    
-  }
-  
-  
-  #### Kraus 2 --------------------------------------------------------------------
-  if(any(method == 'Kraus2'))
-  {
-    Kraus2 <- ReconstPoFD::reconstructKraus(X_mat        = curves.train,
-                                            alpha        = 0.002,
-                                            reconst_fcts = reconst_fcts)
-    
-    curves.Kraus2.recon          <- Kraus2[['X_reconst_mat']]
-    curves.Kraus2                <- curves.train
-    curves.Kraus2[,reconst_fcts] <- curves.Kraus2.recon
-    
-    ## Smoothing
-    basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
-    fPar  <- fdPar(fdobj=basis, Lfdobj=2, lambda=1e-5)
-    curves.Kraus2.fd <- smooth.basis(t.points, curves.Kraus2, fPar)$fd
-    
-    # ## B-list
-    # fPar  <- smth$fPar
-    # blist.fixed <- list(fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar)
-    # 
-    # for(q in 1:dim(XX)[2])
-    # {
-    #   blist.fixed[[q]]$lambda <- lambda.fixed[[q]]
-    # }
-    # #blist <- blist.fixed
-    # 
-    # ## Selection of the optimal lambda
-    # blist <- lambda_select(curves.fd     = curves.Kraus2.fd,
-    #                        xlist         = xlist.train,
-    #                        t.points      = T.period,
-    #                        reg.idxs      = 7,
-    #                        blist.fixed   = blist.fixed,
-    #                        XX            = X.train,
-    #                        wgts.fd       = wgt$wgts.fd,
-    #                        extrapolation = TRUE)
-    
-    ## Regression and beta estimation
-    mod <- fRegress(y            = curves.Kraus2.fd,
-                    xfdlist      = xlist.train,
-                    betalist     = blist,
-                    returnMatrix = FALSE,
-                    method       = 'fRegress',
-                    sep          = '.')
-    ## y_hat and MSE
-    curves.Kraus2.hat   <- my_predict_fRegress(mod          = mod,
-                                               xlist        = xlist.test,
-                                               t.points     = t.points)
-    curves.Kraus2.hat.v <- eval.fd(t.points, curves.Kraus2.hat)
-    
-    evalMSE    <- eval_MSE(curves     = curves.test,
-                           curves.hat = curves.Kraus2.hat.v,
-                           t.points   = t.points)
-    MSE <- evalMSE$MSE
-    MSE_reconstruction <- evalMSE$MSE_reconstruction
-    
-  }
-  
-  
-  
-  
-  #### Kneip-Liebl No Alignment -----------------------------------------------------------
-  if(any(method == 'KLNoAl'))
-  {
-    Y_list <- lapply(seq_len(ncol(curves.train)), function(i) curves.train[!is.na(curves.train[,i]),i])
-    U_list <- lapply(seq_len(ncol(curves.train)), function(i) t.points[!is.na(curves.train[,i])])
-    
-    KL_NoAl_CES <- my_reconstructKneipLiebl(Ly           = Y_list,
-                                            Lu           = U_list,
-                                            method       = 'Error>0_AlignNO_CEscores',
-                                            K            = 2, # a preliminar step was run to fix this term over CV iterations
-                                            reconst_fcts = reconst_fcts,
-                                            nRegGrid     = NULL,
-                                            maxbins      = NULL,
-                                            progrbar     = FALSE)
-    
-    curves.KL.recon <- matrix(unlist(KL_NoAl_CES[['Y_reconst_list']]),
-                              nrow = length(t.points), ncol = length(reconst_fcts))
-    
-    curves.KL       <- curves.train
-    curves.KL[,reconst_fcts] <- curves.KL.recon
-    
-    ## Smoothing
-    basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
-    fPar  <- fdPar(fdobj=basis, Lfdobj=2, lambda=1e-5)
-    curves.KL.fd <- smooth.basis(t.points, curves.KL, fPar)$fd
-    
-    # ## B-list
-    # fPar  <- smth$fPar
-    # blist.fixed <- list(fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar)
-    # 
-    # for(q in 1:dim(XX)[2])
-    # {
-    #   blist.fixed[[q]]$lambda <- lambda.fixed[[q]]
-    # }
-    # #blist <- blist.fixed
-    # 
-    # ## Selection of the optimal lambda
-    # blist <- lambda_select(curves.fd     = curves.KL.fd,
-    #                        xlist         = xlist.train,
-    #                        t.points      = T.period,
-    #                        reg.idxs      = 7,
-    #                        blist.fixed   = blist.fixed,
-    #                        XX            = X.train,
-    #                        wgts.fd       = wgt$wgts.fd,
-    #                        extrapolation = TRUE)
-    
-    ## Regression and beta estimation
-    mod <- fRegress(y            = curves.KL.fd,
-                    xfdlist      = xlist.train,
-                    betalist     = blist,
-                    returnMatrix = FALSE,
-                    method       = 'fRegress',
-                    sep          = '.')
-    
-    ## y_hat and MSE
-    curves.KL.hat   <- my_predict_fRegress(mod          = mod,
-                                           xlist        = xlist.test,
-                                           t.points     = t.points)
-    curves.KL.hat.v <- eval.fd(t.points, curves.KL.hat)
-    
-    evalMSE    <- eval_MSE(curves     = curves.test,
-                           curves.hat = curves.KL.hat.v,
-                           t.points   = t.points)
-    MSE <- evalMSE$MSE
-    MSE_reconstruction <- evalMSE$MSE_reconstruction
-    
-  }
-  
-  
-  #### Kneip-Liebl Yes Alignment -----------------------------------------------------------
   if(any(method == 'KLAl'))
   {
     load('Results/Reconstruction-methods-comparison/K_Al.RData')
@@ -410,71 +105,158 @@ methods_workflow <- function(b,
     Y_list <- lapply(seq_len(ncol(curves.train)), function(i) curves.train[!is.na(curves.train[,i]),i])
     U_list <- lapply(seq_len(ncol(curves.train)), function(i) t.points[!is.na(curves.train[,i])])
     
-    KL_Al_CES <- my_reconstructKneipLiebl(Ly             = Y_list,
-                                          Lu             = U_list,
-                                          method         = 'Error>0_AlignYES_CEscores',
-                                          K              = K.train[reconst_fcts], #a preliminar step was run to fix this term over CV iterations
-                                          reconst_fcts   = reconst_fcts,
-                                          nRegGrid       = NULL,
-                                          maxbins        = NULL,
-                                          progrbar       = FALSE)
-    curves.KLAL.recon <- matrix(unlist(KL_Al_CES[['Y_reconst_list']]),
+    reconstruction <- my_reconstructKneipLiebl(Ly             = Y_list,
+                                               Lu             = U_list,
+                                               method         = 'Error>0_AlignYES_CEscores',
+                                               K              = K.train[reconst_fcts], #a preliminar step was run to fix this term over CV iterations
+                                               reconst_fcts   = reconst_fcts,
+                                               nRegGrid       = NULL,
+                                               maxbins        = NULL,
+                                               progrbar       = FALSE)
+    curves.recon <- matrix(unlist(reconstruction[['Y_reconst_list']]),
                                 nrow = length(t.points), ncol = length(reconst_fcts))
-    curves.KLAL       <- curves.train
-    curves.KLAL[,reconst_fcts] <- curves.KLAL.recon
     
-    ## Smoothing
-    basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
-    fPar  <- fdPar(fdobj=basis, Lfdobj=2, lambda=1e-5)
-    curves.KLAL.fd <- smooth.basis(t.points, curves.KLAL, fPar)$fd
-    
-    # ## B-list
-    # fPar  <- smth$fPar
-    # blist.fixed <- list(fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar,fPar)
-    # 
-    # for(q in 1:dim(XX)[2])
-    # {
-    #   blist.fixed[[q]]$lambda <- lambda.fixed[[q]]
-    # }
-    # #blist <- blist.fixed
-    # 
-    # ## Selection of the optimal lambda
-    # blist <- lambda_select(curves.fd     = curves.KLAL.fd,
-    #                        xlist         = xlist.train,
-    #                        t.points      = T.period,
-    #                        reg.idxs      = 7,
-    #                        blist.fixed   = blist.fixed,
-    #                        XX            = X.train,
-    #                        wgts.fd       = wgt$wgts.fd,
-    #                        extrapolation = TRUE)
-    
-    
-    ## Regression and beta estimation
-    mod <- fRegress(y            = curves.KLAL.fd,
-                    xfdlist        = xlist.train,
-                    betalist     = blist,
-                    returnMatrix = FALSE,
-                    method       = 'fRegress',
-                    sep          = '.')
-    
-    ## y_hat and MSE
-    curves.KLAL.hat   <- my_predict_fRegress(mod          = mod,
-                                             xlist        = xlist.test,
-                                             t.points     = t.points)
-    curves.KLAL.hat.v <- eval.fd(t.points, curves.KLAL.hat)
-    
-    evalMSE    <- eval_MSE(curves     = curves.test,
-                           curves.hat = curves.KLAL.hat.v,
-                           t.points   = t.points)
-    MSE <- evalMSE$MSE
-    MSE_reconstruction <- evalMSE$MSE_reconstruction
-    
+    if(wgts.flag)
+    {
+      for(ii in 1:dim(curves.recon)[2])
+      {
+        curves.recon[!is.na(curves.train[,reconst_fcts[ii]]),ii] <- curves.train[!is.na(curves.train[,reconst_fcts[ii]]),reconst_fcts[ii]]
+      }
+    }
+    curves.train.rec <- curves.train
+    curves.train.rec[,reconst_fcts] <- curves.recon
   }
   
+  ## Construction of the weights -----------------------------------------------
+  if(is.numeric(fix.par))
+  {
+    wgt       <- create_weights(curves.rec    = curves.train.rec,
+                                t.points      = t.points,
+                                breaks        = breaks,
+                                fix.par       = fix.par,
+                                reconst_fcts  = reconst_fcts,
+                                Thp           = log.Thp.train)
+    
+  } else {
+    wgt       <- create_zero_weights(curves.rec    = curves.train.rec,
+                                     t.points      = t.points,
+                                     breaks        = breaks,
+                                     reconst_fcts  = reconst_fcts,
+                                     Thp           = log.Thp.train)
+  }
+  
+  ## Smoothing -----------------------------------------------------------------
+  if(wgts.flag)
+  {
+    smth      <- wt_bsplinesmoothing(curves   = curves.train.rec,
+                                     wgts.obs = wgt$wgts.obs,
+                                     t.points = t.points,
+                                     breaks   = breaks,
+                                     lambda   = 1e-5)
+    curves.fd <- smth$curves.fd
+    fPar  <- smth$fPar
+  } else {
+    basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
+    esp        <- seq(-7,1, by=1)
+    lambda.vec <- sort(10^esp)
+    gcv.vec    <- numeric(length(lambda.vec))
+    for(j in 1:length(lambda.vec))
+    {
+      fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.vec[j])
+      gcv.vec[j] <- sum(smooth.basis(t.points, curves.train.rec, fPar)$gcv)/n
+    }
+    lambda.opt <- lambda.vec[which(gcv.vec == min(gcv.vec))]
+    fPar  <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.opt)
+    curves.fd <- smooth.basis(t.points, curves.train.rec, fPar)$fd
+  }
+  
+  ## Regression and beta estimation --------------------------------------------
+  if(wgts.flag)
+  {
+    mod <- weighted_fRegress(y            = curves.fd,
+                             xfdlist      = xlist.train,
+                             betalist     = blist,
+                             wgts         = wgt$wgts.fd)
+  } else {
+    mod <- unwgt_fRegress(y            = curves.fd,
+                          xfdlist      = xlist.train,
+                          betalist     = blist,
+                          returnMatrix = FALSE,
+                          method       = 'fRegress',
+                          sep          = '.')
+  }
+  
+  beta_estimates <- mod$betaestlist
+  
+  ## Prepare the list of functional covariates which we use for prediction on
+  ## test set
+  onebasis <- create.constant.basis(range(t.points))
+  onesfd   <- fd(1,onebasis)
+  xfdlist.test  <- xlist.test
+  xerror <- FALSE
+  for (j in 1:p) {
+    xfdj <- xfdlist.test[[j]]
+    if (inherits(xfdj, "numeric")) {
+      if (!is.matrix(xfdj)) xfdj = as.matrix(xfdj)
+      Zdimj <- dim(xfdj)
+      if (Zdimj[1] != n.test && Zdimj != 1) {
+        print(paste("Vector in XFDLIST[[",j,"]] has wrong length."))
+        xerror = TRUE 
+      } 
+      if (Zdimj[2] != 1) {
+        print(paste("Matrix in XFDLIST[[",j,"]] has more than one column."))
+        xerror = TRUE 
+      } 
+      xfdlist.test[[j]] <- fd(matrix(xfdj,1,n.test), onebasis)
+    }
+  }
+  
+  ## y_hat and MSE
+  curves.hat   <- my_predict_fRegress(mod          = mod,
+                                      xlist        = xfdlist.test,
+                                      t.points     = t.points)
+  curves.hat.vals <- eval.fd(t.points, curves.hat)
+  
+  ## MSE pointwise
+  diff2 <- (curves.hat.vals - curves.test)^2
+  
+  # Per ogni riga della matrice, voglio sommare i quadrati e dividere per il numero di
+  # osservazioni che ho su quella riga
+  
+  MSE_pw <- numeric(N)
+  for(t in 1:N)
+  {
+    MSE_pw[t] <- sum(diff2[t,!is.na(diff2[t,])])/sum(!is.na(diff2[t,]))
+  }
+  
+  MSE_glob <- numeric(n.test)
+  MSE_glob_bis <- numeric(n.test)
+  for(n in 1:n.test)
+  {
+    MSE_glob[n] <- sum(diff2[!is.na(diff2[,n]),n])/sum(!is.na(diff2[,n]))
+    MSE_glob_bis[n] <- sum(diff2[!is.na(diff2[,n]),n])/(sum(!is.na(diff2[,n]))^2)
+  }
+  
+  MSE_part <- numeric(0)
+  MSE_part_bis <- numeric(0)
+  t.idxs <- seq(32,37)
+  for(n in 1:n.test)
+  {
+    if(sum(!is.na(diff2[t.idxs,n]))!=0)
+    {
+      temp <- sum(diff2[!is.na(diff2[t.idxs,n]),n])/sum(!is.na(diff2[t.idxs,n]))
+      temp2 <- sum(diff2[!is.na(diff2[t.idxs,n]),n])/(sum(!is.na(diff2[t.idxs,n]))^2)
+      MSE_part <- c(MSE_part, temp)
+      MSE_part_bis <- c(MSE_part_bis, temp2)
+    }
+  }
   ## Output --------------------------------------------------------------
-  out.list <- list(MSE                = MSE,
-                   MSE_reconstruction = MSE_reconstruction)
+  out.list <- list(MSE_pw         = MSE_pw,
+                   MSE_glob       = MSE_glob,
+                   MSE_glob_bis   = MSE_glob_bis,
+                   MSE_part       = MSE_part,
+                   MSE_part_bis   = MSE_part_bis,
+                   beta_estimates = beta_estimates)
   
   return(out.list)
-  
 }
