@@ -10,11 +10,13 @@ Results
 Bootstrap
 .Rproj.user
 blist_options
+useful-pics
+
+## Utilities
+main-unwgt.R
+info_plot_wgts.RData
+old-model
 
 ## Simulation
-Simulation/Final-boxplots
-Simulation/main-simulation-CV.R
-Simulation/Old-Results
-Simulation/plot-simulation-results.R
-Simulation/prese-images.R
-Simulation/Results
+Simulation/do-not-load
+Simulation/simulate-data.R
