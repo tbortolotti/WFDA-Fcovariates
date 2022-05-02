@@ -33,7 +33,7 @@ load('DATA/events.RData')
 ## Load Functions ----------------------------------------------------------
 source('methods/find_obs_inc.R')
 source('methods/extrapolation.R')
-source('Simulation/methods/create_old_weights.R')
+source('methods/create_weights.R')
 source('methods/wt_bsplinesmoothing.R')
 
 source('methods/Regression/weighted_fRegress.R')
@@ -75,12 +75,12 @@ curves.extrap <- extrapolate$curves.rec
 # points(t.points, curves[,reconst_fcts[1]], pch=19, col=pal[2])
 
 ## Construction of the weights -------------------------------------------------
-wgt       <- create_old_weights(curves.rec    = curves.extrap,
-                                t.points      = t.points,
-                                breaks        = breaks,
-                                fix.par       = fix.par,
-                                reconst_fcts  = reconst_fcts,
-                                Thp           = log10(T_hp))
+wgt       <- create_weights(curves.rec    = curves.extrap,
+                            t.points      = t.points,
+                            breaks        = breaks,
+                            fix.par       = fix.par,
+                            reconst_fcts  = reconst_fcts,
+                            Thp           = log10(T_hp))
 
 ## Smoothing -------------------------------------------------------------------
 smth             <- wt_bsplinesmoothing(curves   = curves.extrap,
@@ -171,17 +171,6 @@ model_comparison(mod.fit    = mod,
                  curves     = curves.extrap,
                  corrective = FALSE,
                  set.log    = TRUE)
-
-# ## Near source comparison with ITA18
-# source("methods/plots/plot_nearsource_comparison.R")
-# t.idxs <- c(2,7,21)
-# plot_nearsource_comparison(mod.fit    = mod,
-#                            t.points   = t.points,
-#                            name_dir   = name_dir,
-#                            t.idxs     = t.idxs,
-#                            data       = data,
-#                            curves     = curves.extrap,
-#                            set.log    = TRUE)
 
 ## Magnitude check --> a check that the spectral acceleration does not diminish
 #                      as magnitude increases
