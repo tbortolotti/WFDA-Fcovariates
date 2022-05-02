@@ -45,8 +45,8 @@ generate_data <- function(seed,
                         ncol=n.sim)
   expanded.coefs <- xlist[[3]]$coefs[,1:n.sim]*fact.to.exp
   mu.vec <- as.numeric(apply(X=expanded.coefs, MARGIN=1, FUN=mean))
-  cov.mat <- diag(diag(var(t(expanded.coefs))))
-  x2.fd$coefs <- t(mvrnorm(n.sim, mu.vec/2, cov.mat/5))
+  cov.mat <- var(t(expanded.coefs))
+  x2.fd$coefs <- t(mvrnorm(n.sim, mu.vec, cov.mat))
   
   ## FPCA of the residuals
   pca <- pca.fd(res, nharm=6, centerfns=TRUE)

@@ -4,13 +4,8 @@ create_weights_simulation <- function(curves.rec, t.points, breaks, fix.par=2, r
   n <- dim(curves.rec)[2]
   
   ## Building the weights ------------------------------------------------------
-  ## For each observation, evaluate mu so as to be loc.par after
-  ## the last one valid, and the scale so as to be T_max/fix.par, i.e. the
-  ## last valid period divided by the standard deviation of the complete
-  ## observations in that period.
-  step <- round(min(t.points[2:length(t.points)] - t.points[1:(length(t.points)-1)]), digits=2)
-  tt <- seq(range(t.points)[1], range(t.points)[2], by=step)
-  
+  tt <- t.points
+
   wgts.obs <- matrix(data=1, nrow=length(tt), ncol=n)
   
   for(i in 1:length(reconst_fcts))
@@ -36,11 +31,10 @@ create_weights_simulation <- function(curves.rec, t.points, breaks, fix.par=2, r
   ## Smooth the weights on a B-spline basis of degree 2
   basis  <- create.bspline.basis(rangeval=range(breaks), breaks=breaks, norder=2)
   wgts.fd  <- smooth.basis(tt, wgts.obs, basis)$fd
-  wgts.ev <- eval.fd(t.points, wgts.fd)
   
   ## Output -------------------------------------------------------------
   
-  out        <- list(wgts.ev, wgts.fd)
+  out        <- list(wgts.obs, wgts.fd)
   names(out) <- c('wgts.obs', 'wgts.fd')
   
   return(out)

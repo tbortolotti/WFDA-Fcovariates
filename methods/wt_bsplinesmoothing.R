@@ -40,7 +40,6 @@ wt_bsplinesmoothing <- function(curves, wgts.obs, t.points, breaks, lambda=NULL,
   curves.scoef  <- matrix(data=0, nrow=L, ncol=n)
   N <- length(t.points)
   y2cmaps <- array(data=0, dim=c(L,N,n))
-  pb <- progress_bar$new(total=n)
   for(i in 1:n)
   {
     curve            <- curves[,i]
@@ -52,7 +51,6 @@ wt_bsplinesmoothing <- function(curves, wgts.obs, t.points, breaks, lambda=NULL,
     {
       y2cmaps[,,i] <- curve.s$y2cMap
     }
-    pb$tick()
   }
   
   curves.s          <- smooth.basis(t.points, curves, fPar)

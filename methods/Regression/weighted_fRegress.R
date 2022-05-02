@@ -1,50 +1,5 @@
 weighted_fRegress <- function(y, xfdlist, betalist, wgts=NULL, returnMatrix=FALSE) {
   
-  #  FREGRESS  Fits a functional linear model using multiple
-  #  functional independent variables with the dependency being
-  #  pointwise or concurrent.
-  #  The case of a scalar independent variable is included by treating
-  #  it as a functional independent variable with a constant basis
-  #  and a unit coefficient.
-  #  
-  #  Arguments:
-  #  Y            ... an object for the dependent variable,
-  #                   which may be:
-  #                       a functional data object or a numerical vector
-  #  XFDLIST      ... a list object of length p with each list
-  #                   containing an object for an independent variable.
-  #                   the object may be:
-  #                       a functional data object or
-  #                       a vector
-  #                   if XFDLIST is a functional data object or a vector,
-  #                   it is converted to a list of length 1.
-  #  BETALIST     ... a list object of length p with each list
-  #                   containing a functional parameter object for
-  #                   the corresponding regression function.  If any of
-  #                   these objects is a functional data object, it is
-  #                   converted to the default functional parameter object.
-  #                   if BETALIST is a functional parameter object
-  #                   it is converted to a list of length 1.
-  #  WGTS         ... a functional object containing the functional weight for each observation.
-  #                   If NULL, the function performs an unweighted function-on-function regression.
-  #  RETURNMATRIX ... If False, a matrix in sparse storage model can be returned
-  #                   from a call to function BsplineS.  See this function for
-  #                   enabling this option.
-  #
-  #  Returns FREGRESSLIST  ... A list containing seven members with names:
-  #    yfdobj      ... first  argument of FREGRESS
-  #    xfdlist     ... second argument of FREGRESS
-  #    betalist    ... third  argument of FREGRESS
-  #    betaestlist ... estimated regression functions
-  #    yhatfdobj   ... functional data object containing fitted functions
-  #    Cmat        ... coefficient matrix for the linear system defining
-  #                    the regression coefficient basis vector
-  #    Dmat        ... right side vector for the linear system defining
-  #                    the regression coefficient basis vector
-  #    Cmatinv     ... inverse of the coefficient matrix, needed for
-  #                    function FREGRESS.STDERR that computes standard errors
-  #    df          ... degrees of freedom for fit
-  
   if (is.fdPar(y)) y <- y$fd
 
   arglist <- my_fRegressArgCheck(y, xfdlist, betalist)
@@ -124,6 +79,7 @@ weighted_fRegress <- function(y, xfdlist, betalist, wgts=NULL, returnMatrix=FALS
         xyfdj <- (xfdj*wgts)*yfdobj
       }
       wtfdj <- sum(xyfdj)
+      
       #  Compute jth component of DMAT
       Dmatj <- inprod(betabasisj,onesfd,0,0,rangeval,wtfdj)
       Dmat[indexj] <- Dmatj

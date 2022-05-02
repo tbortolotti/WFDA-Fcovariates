@@ -9,6 +9,9 @@ library(snowfall)
 library(progress)
 library(ggplot2)
 library(fields)
+library(beepr)
+library(tidyverse)
+library(latex2exp)
 
 rm(list=ls())
 graphics.off()
@@ -19,195 +22,213 @@ load('DATA/curves.RData')
 load('DATA/t_period.RData')
 load('DATA/obs.RData')
 load('DATA/T_hp.RData')
-load('DATA/xlist.RData')
+load('DATA/xlist-logg.RData')
 load('DATA/events.RData')
-load('blist_options/blist-newestbreaks.RData')
+load('blist_options/log/blistt_latest.RData')
 
 ## Function for the evaluation of the MSE for each proposed method
-source('methods/Reconstruction/methods_workflow.R')
+source('methods/Reconstruction/methods_workflow_new.R')
 
 # Logarithm of the period
-t.points    <- T.period
+t.points    <- log10(T.period)
+t.points[1] <- -2.5
+N <- length(t.points)
 
 log.Thp     <- log10(T_hp)
 
-## Cross-validation ------------------------------------------------------------
+## CV PER SCELTA DEI PESI -------------------------------------------------------
+B     <- 10
 
-B     <- 5 #10
+method <- 'KLAl'
 
-#method <- 'extrapolation'
-method <- 'extrapolation-noweight'
-#method <- 'Kraus1'
-#method <- 'Kraus2'
-method <- 'KLNoAl' 
-#method <- 'KLAl'
+#vec.par <- c(2,5,10,15,20)
+#vec.par <- "inf"
+#vec.par <- c(50,100,1000)
+#vec.par <- c(5,10,15,20,100)
+vec.par <- c(100)
+A <- length(vec.par)
 
+MSE_cv <- array(data=0, dim=c(N, B, A))
+MSE_glob.list <- list(list(),list(),list(),list(),list())
+MSE_glob_bis.list <- list(list(),list(),list(),list(),list())
+MSE_part.list <- list(list(),list(),list(),list(),list())
+MSE_part_bis.list <- list(list(),list(),list(),list(),list())
 
-loc.vec <- c(0,2,5)
-i       <- 1
-loc     <- loc.vec[i]
-
-
-MSE_cv <- numeric(B)
-MSE_reconstruction_cv <- numeric(B)
+beta1.list <- list()
+beta2.list <- list()
+beta3.list <- list()
+beta6.list <- list()
+beta7.list <- list()
+beta8.list <- list()
+beta9.list <- list()
 
 (Start.Time <- Sys.time())
-pb <- progress_bar$new(total=B)
-for(b in 1:B)
+for(a in 1:A) # a=1
 {
-  method_evaluation <- methods_workflow(b          = b,
-                                        T.period   = T.period,
-                                        t.points   = t.points,
-                                        T_hp       = T_hp,
-                                        log.Thp    = log.Thp,
-                                        curves     = curves,
-                                        events     = event.id,
-                                        B          = B,
-                                        xlist      = xlist,
-                                        blist      = blist,
-                                        method     = method,
-                                        loc        = loc)
-  
-  MSE_cv[b] <- method_evaluation$MSE
-  MSE_reconstruction_cv[b] <- method_evaluation$MSE_reconstruction
-  
-  MSE <- mean(MSE_cv)
-  MSE_reconstruction <- mean(MSE_reconstruction_cv)
-  
-  pb$tick()
-  
+  fix.par <- vec.par[a]
+  for(b in 1:B) # b=1
+  {
+    print(paste0("Par:", a, " b:",b))
+    method_evaluation <- methods_workflow_new(b          = b,
+                                              T.period   = T.period,
+                                              t.points   = t.points,
+                                              breaks     = t.points,
+                                              T_hp       = T_hp,
+                                              log.Thp    = log.Thp,
+                                              curves     = curves,
+                                              events     = event.id,
+                                              B          = B,
+                                              xlist      = xlist,
+                                              blist      = blist,
+                                              method     = method,
+                                              fix.par    = fix.par,
+                                              wgts.flag  = TRUE)
+    
+    MSE_cv[,b,a] <- method_evaluation$MSE_pw
+    MSE_glob.list[[a]][[b]] <- method_evaluation$MSE_glob
+    MSE_glob_bis.list[[a]][[b]] <- method_evaluation$MSE_glob_bis
+    MSE_part.list[[a]][[b]] <- method_evaluation$MSE_part
+    MSE_part_bis.list[[a]][[b]] <- method_evaluation$MSE_part_bis
+    
+    if(b==1)
+    {
+      beta1.est <- method_evaluation$beta_estimates[[1]]$fd
+      beta2.est <- method_evaluation$beta_estimates[[2]]$fd
+      beta3.est <- method_evaluation$beta_estimates[[3]]$fd
+      beta6.est <- method_evaluation$beta_estimates[[6]]$fd
+      beta7.est <- method_evaluation$beta_estimates[[7]]$fd
+      beta8.est <- method_evaluation$beta_estimates[[8]]$fd
+      beta9.est <- method_evaluation$beta_estimates[[9]]$fd
+      
+      beta1.est$coefs <- beta1.est$coefs %*% rep(1,B)
+      beta2.est$coefs <- beta2.est$coefs %*% rep(1,B)
+      beta3.est$coefs <- beta3.est$coefs %*% rep(1,B)
+      beta6.est$coefs <- beta6.est$coefs %*% rep(1,B)
+      beta7.est$coefs <- beta7.est$coefs %*% rep(1,B)
+      beta8.est$coefs <- beta8.est$coefs %*% rep(1,B)
+      beta9.est$coefs <- beta9.est$coefs %*% rep(1,B)
+    } else {
+      beta1.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[1]]$fd$coefs, ncol=1)
+      beta2.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[2]]$fd$coefs, ncol=1)
+      beta3.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[3]]$fd$coefs, ncol=1)
+      beta6.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[6]]$fd$coefs, ncol=1)
+      beta7.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[7]]$fd$coefs, ncol=1)
+      beta8.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[8]]$fd$coefs, ncol=1)
+      beta9.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[9]]$fd$coefs, ncol=1)
+    }
+    
+  }
+  beta1.list[[a]] <- beta1.est
+  beta2.list[[a]] <- beta2.est
+  beta3.list[[a]] <- beta3.est
+  beta6.list[[a]] <- beta6.est
+  beta7.list[[a]] <- beta7.est
+  beta8.list[[a]] <- beta8.est
+  beta9.list[[a]] <- beta9.est
 }
+
 End.Time <- Sys.time()
 round(End.Time - Start.Time, 2)
 
-#name.file <- paste0('Results/Reconstruction-methods-comparison/5-fold/period/MSE_',method,'_',(i-1),'.RData')
-#save(MSE_cv, MSE_reconstruction_cv, MSE, MSE_reconstruction, file=name.file)
+beep()
 
-name.file <- paste0('Results/Reconstruction-methods-comparison/5-fold/period/MSE_',method,'.RData')
-save(MSE_cv, MSE_reconstruction_cv, MSE, MSE_reconstruction, file=name.file)
+#name.file <- paste0('Results/a-definition/MSE_20fold_nowgts.RData')
+#name.file <- paste0('Results/a-definition/MSE_10fold_oldwgts.RData')
+#name.file <- paste0('Results/a-definition/partial-MSE/MSE_10fold_oldwgts.RData')
+#name.file <- paste0('Results/a-definition/partial-MSE/MSE_10fold_unwgt.RData')
+name.file <- paste0('Results/a-definition/partial-MSE/MSE_10fold_0wgts.RData')
 
-load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation-noweight.RData')
-mean(MSE_cv)
+save(vec.par, MSE_cv, MSE_glob.list, MSE_glob_bis.list, MSE_part.list, MSE_part_bis.list, beta1.list, beta2.list, beta3.list,
+     beta6.list, beta7.list, beta8.list, beta9.list, file=name.file)
 
-# Store results ----------------------------------------------------------------
-MSEs <- numeric(8)
-MSEs_recon <- numeric(8)
+## CV PER RECONSTRUCTION METHOD COMPARISON ---------------------------------------------
+B       <- 10
+fix.par <- 100
 
-load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_0.RData')
-MSEs[1] <- MSE
-MSEs_recon[1] <- MSE_reconstruction
-extrap0 <- MSE_cv
+#method <- 'extrapolation'
+method <- 'KLAl'
 
-# load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_1.RData')
-# MSEs[2] <- MSE
-# MSEs_recon[2] <- MSE_reconstruction
-# extrap1 <- MSE_cv
-# 
-load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_2.RData')
-MSEs[2] <- MSE
-MSEs_recon[2] <- MSE_reconstruction
-extrap2 <- MSE_cv
+MSE_cv <- array(data=0, dim=c(N, B, 1))
+MSE_glob.list <- list(list(),list(),list(),list(),list())
+MSE_glob_bis.list <- list(list(),list(),list(),list(),list())
+MSE_part.list <- list(list(),list(),list(),list(),list())
+MSE_part_bis.list <- list(list(),list(),list(),list(),list())
 
-# load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_3.RData')
-# MSEs[2] <- MSE
-# MSEs_recon[2] <- MSE_reconstruction
-# extrap3 <- MSE_cv
+beta1.list <- list()
+beta2.list <- list()
+beta3.list <- list()
+beta6.list <- list()
+beta7.list <- list()
+beta8.list <- list()
+beta9.list <- list()
 
-# load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_4.RData')
-# MSEs[5] <- MSE
-# MSEs_recon[5] <- MSE_reconstruction
-# extrap4 <- MSE_cv
+(Start.Time <- Sys.time())
+for(b in 1:B) # b=1
+{
+  print(paste0("b: ",b))
+  method_evaluation <- methods_workflow_new(b          = b,
+                                            T.period   = T.period,
+                                            t.points   = t.points,
+                                            breaks     = t.points,
+                                            T_hp       = T_hp,
+                                            log.Thp    = log.Thp,
+                                            curves     = curves,
+                                            events     = event.id,
+                                            B          = B,
+                                            xlist      = xlist,
+                                            blist      = blist,
+                                            method     = method,
+                                            fix.par    = fix.par,
+                                            wgts.flag  = TRUE)
+  
+  MSE_cv[,b,1] <- method_evaluation$MSE_pw
+  MSE_glob.list[[1]][[b]] <- method_evaluation$MSE_glob
+  MSE_glob_bis.list[[1]][[b]] <- method_evaluation$MSE_glob_bis
+  MSE_part.list[[1]][[b]] <- method_evaluation$MSE_part
+  MSE_part_bis.list[[1]][[b]] <- method_evaluation$MSE_part_bis
+  
+  if(b==1)
+  {
+    beta1.est <- method_evaluation$beta_estimates[[1]]$fd
+    beta2.est <- method_evaluation$beta_estimates[[2]]$fd
+    beta3.est <- method_evaluation$beta_estimates[[3]]$fd
+    beta6.est <- method_evaluation$beta_estimates[[6]]$fd
+    beta7.est <- method_evaluation$beta_estimates[[7]]$fd
+    beta8.est <- method_evaluation$beta_estimates[[8]]$fd
+    beta9.est <- method_evaluation$beta_estimates[[9]]$fd
+    
+    beta1.est$coefs <- beta1.est$coefs %*% rep(1,B)
+    beta2.est$coefs <- beta2.est$coefs %*% rep(1,B)
+    beta3.est$coefs <- beta3.est$coefs %*% rep(1,B)
+    beta6.est$coefs <- beta6.est$coefs %*% rep(1,B)
+    beta7.est$coefs <- beta7.est$coefs %*% rep(1,B)
+    beta8.est$coefs <- beta8.est$coefs %*% rep(1,B)
+    beta9.est$coefs <- beta9.est$coefs %*% rep(1,B)
+  } else {
+    beta1.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[1]]$fd$coefs, ncol=1)
+    beta2.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[2]]$fd$coefs, ncol=1)
+    beta3.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[3]]$fd$coefs, ncol=1)
+    beta6.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[6]]$fd$coefs, ncol=1)
+    beta7.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[7]]$fd$coefs, ncol=1)
+    beta8.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[8]]$fd$coefs, ncol=1)
+    beta9.est$coefs[,b] <- as.matrix(method_evaluation$beta_estimates[[9]]$fd$coefs, ncol=1)
+  }
+  
+}
+beta1.list[[1]] <- beta1.est
+beta2.list[[1]] <- beta2.est
+beta3.list[[1]] <- beta3.est
+beta6.list[[1]] <- beta6.est
+beta7.list[[1]] <- beta7.est
+beta8.list[[1]] <- beta8.est
+beta9.list[[1]] <- beta9.est
 
-load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation_5.RData')
-MSEs[3] <- MSE
-MSEs_recon[3] <- MSE_reconstruction
-extrap5 <- MSE_cv
+End.Time <- Sys.time()
+round(End.Time - Start.Time, 2)
 
-load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_extrapolation-noweight.RData')
-MSEs[4] <- MSE
-MSEs_recon[4] <- MSE_reconstruction
-extrap_no <- MSE_cv
+beep()
 
-load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_Kraus1.RData')
-MSEs[5] <- MSE
-MSEs_recon[5] <- MSE_reconstruction
-Kraus1 <- MSE_cv
+name.file <- paste0('Results/rec-method-comparison/MSE_10fold_oldwgts_extrap.RData')
 
-load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_Kraus2.RData')
-MSEs[6] <- MSE
-MSEs_recon[6] <- MSE_reconstruction
-Kraus2 <- MSE_cv
-
-load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_KLNoAl.RData')
-MSEs[7] <- MSE
-MSEs_recon[7] <- MSE_reconstruction
-KLNoAl <- MSE_cv
-
-load('Results/Reconstruction-methods-comparison/5-fold/period/MSE_KLAl.RData')
-MSEs[8] <- MSE
-MSEs_recon[8] <- MSE_reconstruction
-KLAl <- MSE_cv
-
-MSEs.rel <- MSEs/min(MSEs)
-MSEs.rel
-
-MSEs
-MSEs_recon
-
-## Boxplots of the comparison ------------------------------------------------------------------
-
-# class <- c(rep('extrap 0',B),
-#            rep('extrap 1', B),
-#            rep('extrap 2', B),
-#            rep('extrap 3', B),
-#            rep('extrap 4', B),
-#            rep('extrap no-wgts', B),
-#            rep('Kraus 1', B),
-#            rep('Kraus 2', B),
-#            rep('KL - No Al', B),
-#            rep('KL - Al', B))
-# 
-# data.box <- data.frame(c(extrap0,
-#                          extrap1,
-#                          extrap2,
-#                          extrap3,
-#                          extrap4,
-#                          extrap_no,
-#                          Kraus1,
-#                          Kraus2,
-#                          KLNoAl,
-#                          KLAl), as.factor(class))
-
-class <- c(rep('extrap 0',B),
-           rep('extrap 2', B),
-           rep('extrap 5', B),
-           rep('extrap no-wgts', B),
-           rep('Kraus 1', B),
-           rep('Kraus 2', B),
-           rep('KL - No Al', B),
-           rep('KL - Al', B))
-
-data.box <- data.frame(c(extrap0,
-                         extrap2,
-                         extrap5,
-                         extrap_no,
-                         Kraus1,
-                         Kraus2,
-                         KLNoAl,
-                         KLAl), as.factor(class))
-names(data.box) <- c('MSE', 'class')
-
-pg_plot <- ggplot(data.box, aes(x = class, y = MSE))+
-  geom_boxplot(color="black", fill=tim.colors(8))
-pg_plot +
-  scale_x_discrete(limits = levels(data.box$class)) +
-  scale_y_continuous(limits=c(0.08,0.2)) +
-  labs(y="5-fold Mean Squared Error", x="") +
-  theme(axis.text.x = element_text(size = 15),
-        axis.text.y = element_text(size = 15),
-        axis.title.x = element_text(size = 15),
-        axis.title.y = element_text(size = 15)) +
-  theme(legend.position="None")
-
-
-
+save(MSE_cv, MSE_glob.list, MSE_glob_bis.list, beta1.list, beta2.list, beta3.list,
+     beta6.list, beta7.list, beta8.list, beta9.list, file=name.file)

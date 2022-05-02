@@ -16,6 +16,7 @@ library("xtable")
 library(snowfall)
 library(psych)
 library(progress)
+library(beepr)
 
 rm(list=ls())
 graphics.off()
@@ -28,7 +29,7 @@ source('methods/Regression/eval_MSE.R')
 
 source('methods/find_obs_inc.R')
 source('methods/extrapolation.R')
-source('methods/create_weights.R')
+source('Simulation/methods/create_old_weights.R')
 source('methods/wt_bsplinesmoothing.R')
 
 ## Load data -------------------------------------------------------------------
@@ -36,17 +37,11 @@ load('DATA/curves.RData')
 load('DATA/t_period.RData')
 load('DATA/obs.RData')
 load('DATA/T_hp.RData')
-load('DATA/xlist.RData')
+load('DATA/xlist-logg.RData')
 load('DATA/data.RData')
 load('DATA/events.RData')
-load('blist_options/blist.RData')
-
-data <- list(dJB  = dJB,
-             MAG  = MAG,
-             SoF  = SoF,
-             VS30 = VS30)
-
-data.f <- data.frame(dJB = dJB, MAG = MAG, SoF = SoF, VS30 = VS30)
+load('blist_options/log/blistt_latest.RData')
+blist[[6]]$lambda <- 0.1
 
 ## Utilities -------------------------------------------------------------------
 n <- dim(curves)[2]
@@ -54,9 +49,17 @@ q <- length(xlist)
 reconst_fcts  <- find_obs_inc(Y = curves)
 N <- length(T.period)
 
-loc <- 2
-t.points <- T.period
-breaks <- c(seq(0,1,0.1), seq(2,10,0.5))
+fix.par <- 100
+t.points <- log10(T.period)
+t.points[1] <- -2.5
+breaks <- t.points
+
+data <- list(dJB  = dJB,
+             MAG  = MAG,
+             SoF  = SoF,
+             VS30 = VS30)
+
+data.f <- data.frame(dJB = dJB, MAG = MAG, SoF = SoF, VS30 = VS30)
 
 ## Preprocessing ---------------------------------------------------------------
 extrapolate   <- extrapolation(curves       = curves,
@@ -66,22 +69,21 @@ extrapolate   <- extrapolation(curves       = curves,
 curves.extrap <- extrapolate$curves.rec
 
 ## Construction of the weights
-wgt              <- create_weights(curves.rec    = curves.extrap,
-                                   t.points      = t.points,
-                                   breaks        = breaks,
-                                   loc.par       = loc,
-                                   reconst_fcts  = reconst_fcts,
-                                   Thp           = log10(T_hp))
+wgt       <- create_old_weights(curves.rec    = curves.extrap,
+                                t.points      = t.points,
+                                breaks        = breaks,
+                                fix.par       = fix.par,
+                                reconst_fcts  = reconst_fcts,
+                                Thp           = log10(T_hp))
 
 ## Smoothing
-smth          <- wt_bsplinesmoothing(curves   = curves.extrap,
-                                     wgts.obs = wgt$wgts.obs,
-                                     t.points = t.points,
-                                     breaks   = breaks,
-                                     lambda   = 1e-5,
-                                     set.cb   = FALSE)
+smth             <- wt_bsplinesmoothing(curves   = curves.extrap,
+                                        wgts.obs = wgt$wgts.obs,
+                                        t.points = t.points,
+                                        breaks   = breaks,
+                                        lambda   = 1e-5,
+                                        set.cb   = FALSE)
 curves.extrap.fd <- smth$curves.fd
-
 L <- curves.extrap.fd$basis$nbasis
 
 ## Generate a bootstrap sample of functional coefficients ----------------------
@@ -94,25 +96,24 @@ mod <- weighted_fRegress(y            = curves.extrap.fd,
 
 # 2. evaluate the residuals
 curves.extrap.hat <- my_predict_fRegress(mod          = mod,
-                                         xlist        = xlist,
+                                         xlist        = mod$xfdlist,
                                          t.points     = t.points)
-
 res <- curves.extrap.hat - curves.extrap.fd
 wgts.fd <- wgt$wgts.fd
 
 # 3. Repeatedly sample from the empirical distribution of data
-set.seed(14091996)
+set.seed(140996)
 B <- 1000   # Time consuming. One may decide to lower B and do some trials
-B <- 500
+#B <- 500
 
 obs <- seq(1,n)
 B.list <- array(data=0, dim=c(N,q,B))
                 
 B.mat <- matrix(nrow=N, ncol=q)
 
-pb <- progress_bar$new(total=B)
-for(b in 155:B)
+for(b in 1:B)
 {
+  print(paste0("Iteration ", b, " of ", B))
   obs.b <- sample(obs, replace=T)
   
   res.b <- res
@@ -131,8 +132,9 @@ for(b in 155:B)
   
   B.list[,,b] <- B.mat
   
-  pb$tick()
 }
 
-save(B.list, mod, n, q, L, N, T.period, file='Bootstrap/bootstrap_utils_new.RData')
+beep()
+
+save(B.list, mod, n, q, L, N, T.period, file='Bootstrap/bootstrap_utils_latestt.RData')
 

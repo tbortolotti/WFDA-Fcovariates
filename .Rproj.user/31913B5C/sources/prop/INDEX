@@ -25,6 +25,7 @@
 ~%2FDocuments%2FR%2FWFDA-Fcovariates%2FSimulation%2Fmain.R="E23F66CC"
 ~%2FDocuments%2FR%2FWFDA-Fcovariates%2FSimulation%2Fmethods%2Fcreate_jumpy_weights.R="FE3C96F9"
 ~%2FDocuments%2FR%2FWFDA-Fcovariates%2FSimulation%2Fmethods%2Fcreate_weights_simulation.R="1457A245"
+~%2FDocuments%2FR%2FWFDA-Fcovariates%2FSimulation%2Fmethods%2Fcreate_zero_weights.R="A8169035"
 ~%2FDocuments%2FR%2FWFDA-Fcovariates%2FSimulation%2Fmethods%2Feval_MSE_functional.R="4E52B832"
 ~%2FDocuments%2FR%2FWFDA-Fcovariates%2FSimulation%2Fmethods%2Feval_MSE_simulation.R="B09463BE"
 ~%2FDocuments%2FR%2FWFDA-Fcovariates%2FSimulation%2Fmethods%2Fgenerate-data.R="8E3A812D"

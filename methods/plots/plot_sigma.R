@@ -18,25 +18,23 @@ plot_sigma <- function(SigmaE, sigma.ITA18, t.points, name_dir)
     geom_line(aes(x = t.plot, y = sigma.t,
                   color = pal[2]), size=1) +
     geom_line(aes(x = t.plot, y = sigma.ITA18,
-                  color = pal[1]), size=1) +
-    scale_color_manual(name="Model:",values=c(pal[2],pal[1]), labels = c("Functional", "Scalar")) +
+                  color = "darkorange"), size=1) +
+    scale_color_manual(name="Model:",values=c(pal[2],"darkorange"), labels = c("F-ITA18", "ITA18")) +
     scale_x_continuous(breaks=x.ticks, labels=10^x.ticks) +
     scale_y_continuous(breaks=seq(0.25,0.35, by=0.05)) +
-    #ggtitle(paste0("MSE -") +
     theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5)) + 
-    theme(text = element_text(size = 12)) +
-    #theme(axis.title.x = element_text(size = 16)) +
-    theme(axis.text.x = element_text(size = 12)) +
-    #theme(axis.title.y = element_text(size = 16)) +
-    theme(axis.text.y = element_text(size = 12)) +
-    theme(legend.text = element_text(size = 12)) +
-    xlab("Period [s]") + ylab(TeX('$\\hat{\\sigma}$'))
+    labs(x="Period [s]", y=TeX(r'($\hat{\sigma}$)'), title='(b) Comparison of residuals standard deviation') +
+    theme(plot.title = element_text(face = "bold", hjust = 0.5, size=22),
+          text = element_text(size = 22),
+          axis.text.x = element_text(size = 22),
+          axis.text.y = element_text(size = 22),
+          legend.text = element_text(size = 19),
+          legend.title = element_text(size = 19))
   
-  ggsave(filename = paste0("sigma_comparison.png"),
+  ggsave(filename = paste0("sigma_comparison.pdf"),
          plot = last_plot(),
-         width = 8,
-         height = 3,
+         width = 9,
+         height = 5,
          units = "in",
          device = NULL,
          path = new.dir,

@@ -22,7 +22,7 @@ rm(list=ls())
 graphics.off()
 cat("\014")
 
-load('Bootstrap/bootstrap_utils.RData')
+load('Bootstrap/bootstrap_utils_latestt.RData')
 
 overall.conf <- list()
 for(j in 1:q)
@@ -78,8 +78,8 @@ for(j in 1:q)
   plot(t.points, beta.j.val, type='l', col=pal[2], lwd=4, main= names.coefs[j], font.main=1, xlab='Period [s]', ylab='',
         cex.lab=2.8, cex.axis=2.5, cex.main=2.8, xaxt='n', ylim=ylim)
   points(t.points, beta.j.val, pch=19, col=pal[2])
-  lines(t.points, X.ita18[,j], col=pal[1], lwd=4)
-  points(t.points, X.ita18[,j], pch=19, col=pal[1])
+  lines(t.points, X.ita18[,j], col="darkorange", lwd=4)
+  points(t.points, X.ita18[,j], pch=19, col="darkorange")
   for(i in 1:37)
   {
     t <- t.points[i]
@@ -153,36 +153,37 @@ k0 <- ITA18.regressors[,7]
 X.ita18 <- cbind(a0,b1,b2,f1,f2,c1,c2,c3,k0)
 
 t.points <- log10(T.period)
-t.points[1] <- -2.4
+t.points[1] <- -2.5
 xtick <- seq(-2,1,by=1)
 
-names.coefs <- c('a','b1','b2','f1','f2','Geometric attenuation','Geometric attenuation','Anelastic attenuation','k')
+names.coefs <- c('a','b1','b2','f1','f2','c1','c2','c3','k')
 coefs.names <- c('Intercept', 'B1', 'B2', 'F1', 'F2','C1','C2','C3','K')
 
-for(j in 1:q)
+for(j in 1:q) #j=5
 {
   beta.j.mod <- mod$betaestlist[[j]]$fd
   beta.j.val <- eval.fd(t.points, beta.j.mod)
   
-  y.min <- min(overall.conf[[j]][2,])
-  y.max <- max(overall.conf[[j]][1,])
+  y.min <- min(c(overall.conf[[j]][2,], X.ita18[,j]))
+  y.max <- max(c(overall.conf[[j]][1,], X.ita18[,j]))
   ylim <- c(y.min, y.max)
   
-  png(file = paste0("Bootstrap/novel/Boxplots-and-comparison/reg_",coefs.names[j],".png"), width = 8000, height = 5000, units = "px", res=800)
+  pdf(file = paste0("Bootstrap/novel/Boxplots-and-comparison-new/reg_",coefs.names[j],".pdf"), width = 8, height = 5)
   par(mar=c(4.5, 4, 2.5, 1)+.1)
   fda::fbplot(fit=B.list[,j,], x=t.points, method="MBD", color=pal.gb.fade, xlab='Period [s]',
               xlim=range(t.points), ylim=ylim, cex.axis=1.8, cex.lab=1.8, ylab='', xaxt='n')
-  title(main=names.coefs[j], font.main=1, cex.main=1.8)
-  lines(t.points, beta.j.val, lwd=4, col=pal[5], xaxt='n', yaxt='n')
-  lines(t.points, X.ita18[,j], col=pal[1], lwd=4)
-  points(t.points, X.ita18[,j], pch=19, col=pal[1])
-  abline(h=0, col=pal[2], lty=5, lwd=3)
-  axis(side=1, at=c(-2.4,xtick), labels = c(0,10^xtick), cex.axis=2.5)
+  title(main=paste0('(b) ',names.coefs[j]), cex.main=1.8)
+  #lines(t.points, beta.j.val, lwd=3, col=pal[5], xaxt='n', yaxt='n')
+  lines(t.points, X.ita18[,j], col="darkorange", lwd=3)
+  points(t.points, X.ita18[,j], pch=19, col="darkorange")
+  grid()
+  abline(h=0, col="black", lty=5, lwd=2)
+  abline(v=t.points[21], col='black', lty=4, lwd=2)
+  abline(v=t.points[32], col='black', lty=4, lwd=2)
+  axis(side=1, at=xtick, labels = 10^xtick, cex.axis=2)
   #axis(side=2, cex.axis=2.5)
   #legend(0, 0.6, legend=c("Functional", "Scalar", TeX("$M_w= 4.8$"),TeX("$M_w= 5.8$"), TeX("$M_w= 7.0$")),
-  #      col=c('black','black',pal[3], pal[1],pal[5]), lwd=c(3,3,0,0,0), lty=c(1,5,0,0,0), pch=c(NA,NA,16,16,16), cex=2.2)
-  
-  grid()
+  #      col=c('black','black',pal[3], "darkorange",pal[5]), lwd=c(3,3,0,0,0), lty=c(1,5,0,0,0), pch=c(NA,NA,16,16,16), cex=2.2)
   dev.off()
 }
 
@@ -204,13 +205,13 @@ fda::fbplot(fit=B.list[,j,], x=t.points, method="MBD", color=pal.gb.fade, xlab='
             xlim=range(t.points), ylim=ylim, xaxt='n',cex.axis=1.8, cex.lab=1.8, ylab='')
 title(main=names.coefs[j], font.main=1, cex.main=1.8)
 lines(t.points, beta.j.val, lwd=4, col=pal[5], xaxt='n', yaxt='n')
-lines(t.points, X.ita18[,j], col=pal[1], lwd=4)
-points(t.points, X.ita18[,j], pch=19, col=pal[1])
+lines(t.points, X.ita18[,j], col="darkorange", lwd=4)
+points(t.points, X.ita18[,j], pch=19, col="darkorange")
 abline(h=0, col=pal[2], lty=5, lwd=3)
 axis(side=1, at=c(-2.4,xtick), labels = c(0,10^xtick), cex.axis=1.8)
 #axis(side=2, cex.axis=2.5)
 legend(-0.2, -1.62, legend=c("Functional", "Scalar"),
-       col=c(pal[5],pal[1]), lwd=c(3,3), lty=c(1,1), cex=1.8)
+       col=c(pal[5],"darkorange"), lwd=c(3,3), lty=c(1,1), cex=1.8)
 
 grid()
 dev.off()
@@ -232,13 +233,13 @@ fda::fbplot(fit=B.list[,j,], x=t.points, method="MBD", color=pal.gb.fade, xlab='
             xlim=range(t.points), ylim=ylim, xaxt='n',cex.axis=1.8, cex.lab=1.8, ylab='')
 title(main=names.coefs[j], font.main=1, cex.main=1.8)
 lines(t.points, beta.j.val, lwd=4, col=pal[5], xaxt='n', yaxt='n')
-lines(t.points, X.ita18[,j], col=pal[1], lwd=4)
-points(t.points, X.ita18[,j], pch=19, col=pal[1])
+lines(t.points, X.ita18[,j], col="darkorange", lwd=4)
+points(t.points, X.ita18[,j], pch=19, col="darkorange")
 abline(h=0, col=pal[5], lty=5, lwd=2)
 axis(side=1, at=c(-2.4,xtick), labels = c(0,10^xtick), cex.axis=1.8)
 #axis(side=2, cex.axis=2.5)
 legend(-0.2, -0.0029, legend=c("Functional", "Scalar", "FBPlot"),
-       col=c(pal[5],pal[1], pal.gb[2]), lwd=c(3,3, 3), lty=c(1,1,1), cex=1.8)
+       col=c(pal[5],"darkorange", pal.gb[2]), lwd=c(3,3, 3), lty=c(1,1,1), cex=1.8)
 
 grid()
 dev.off()

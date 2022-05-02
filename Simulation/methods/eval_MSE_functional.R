@@ -1,9 +1,8 @@
 eval_MSE_functional <- function(curves, curves.hat, t.points)
 {
   n <- dim(curves$coefs)[2]
-  
-  delta.T <- range(t.points)[2] - range(t.points)[1]
   MSE.vec <- numeric(n)
+
   for(i in 1:n) #i=1
   {
     yi <- curves
@@ -14,7 +13,7 @@ eval_MSE_functional <- function(curves, curves.hat, t.points)
     
     err.i <- yi - yi.hat
     MSE.vec[i] <- diag(inprod(err.i, err.i, 0, 0, rng=range(t.points)))
-    MSE.vec[i] <- MSE.vec[i]/delta.T
+    MSE.vec[i] <- MSE.vec[i]
   }
   
   MSE     <- sum(MSE.vec)/n

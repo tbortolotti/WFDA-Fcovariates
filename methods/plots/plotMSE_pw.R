@@ -2,6 +2,7 @@ plotMSE_pw <- function(MSE.vec, MSE.ita18 = rep(0,37), t.points, name_dir)
 {
   
   library(wesanderson)
+  library(latex2exp)
   pal  <- wes_palette("Cavalcanti1")
   
   # create the directory to save plots
@@ -18,25 +19,23 @@ plotMSE_pw <- function(MSE.vec, MSE.ita18 = rep(0,37), t.points, name_dir)
     geom_line(aes(x = t.plot, y = MSE.vec,
                   color = pal[2]), size=1) +
     geom_line(aes(x = t.plot, y = MSE.ita18,
-                  color = pal[1]), size=1) +
-    scale_color_manual(name="Model:",values=c(pal[2],pal[1]), labels = c("Functional", "Scalar")) +
+                  color = "darkorange"), size=1) +
+    scale_color_manual(name="Model:",values=c(pal[2],"darkorange"), labels = c("F-ITA18", "ITA18")) +
     scale_x_continuous(breaks=x.ticks, labels=10^x.ticks) +
     scale_y_continuous(breaks=seq(0.08,0.18, by=0.02)) +
-    #ggtitle(paste0("MSE -") +
     theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5)) + 
-    theme(text = element_text(size = 12)) +
-    #theme(axis.title.x = element_text(size = 16)) +
-    theme(axis.text.x = element_text(size = 12)) +
-    #theme(axis.title.y = element_text(size = 16)) +
-    theme(axis.text.y = element_text(size = 12)) +
-    theme(legend.text = element_text(size = 12)) +
-    xlab("Period [s]") + ylab("MSE")
+    labs(x="Period [s]", y="MSE", title='(a) Comparison of point-wise MSE') +
+    theme(plot.title = element_text(face = "bold", hjust = 0.5, size=22),
+          text = element_text(size = 22),
+          axis.text.x = element_text(size = 22),
+          axis.text.y = element_text(size = 22),
+          legend.text = element_text(size = 19),
+          legend.title = element_text(size = 19))
   
-  ggsave(filename = paste0("MSE_pointwise.png"),
+  ggsave(filename = paste0("MSE_pointwise.pdf"),
          plot = last_plot(),
-         width = 8,
-         height = 3,
+         width = 9,
+         height = 5,
          units = "in",
          device = NULL,
          path = new.dir,

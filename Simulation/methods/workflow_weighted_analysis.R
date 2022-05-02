@@ -14,6 +14,8 @@ workflow_weighted_analysis <- function(b,
   ## Methods
   source('methods/find_obs_inc.R')
   source('Simulation/methods/create_weights_simulation.R')
+  source('Simulation/methods/create_old_weights.R')
+  source('Simulation/methods/create_zero_weights.R')
   source('methods/wt_bsplinesmoothing.R')
   source('methods/Reconstruction/my_reconstructKneipLiebl.R')
   
@@ -134,17 +136,49 @@ workflow_weighted_analysis <- function(b,
   curves.train.rec <- curves.train
   curves.train.rec[,reconst_fcts] <- curves.recon
   
-  ## Construction of the weights -----------------------------------------------
-  wgt       <- create_weights_simulation(curves.rec    = curves.train.rec,
-                                           t.points      = t.points,
-                                           breaks        = breaks,
-                                           fix.par       = fix.par,
-                                           reconst_fcts  = reconst_fcts,
-                                           Thp           = T_hp.train)
-
+  # pdf(file = paste0("useful-pics/po-curve-and-reconstruction.pdf"), width = 8, height = 5)
+  # par(mar=c(4.5, 4.5, 2.5, 1)+.1)
+  # plot(t.points, curves.train[, reconst_fcts[1]], type='l', lwd=3, col='darkblue',
+  #      main="(a) Partially observed curve", ylim=c(-3.5,-1), xlab="t", ylab="y(t)",
+  #      cex.main=1.8, cex.axis=1.8, cex.lab=1.8)
+  # lines(t.points[t.points>=1.75], curves.train.rec[(t.points>=1.75), reconst_fcts[1]],
+  #       col='lightblue', lwd=3)
+  # points(t.points, curves.train[, reconst_fcts[1]],pch=16, col='darkblue')
+  # grid()
+  # dev.off()
   
+  ## Construction of the weights -----------------------------------------------
+  if(is.numeric(fix.par))
+  {
+    # wgt       <- create_weights_simulation(curves.rec    = curves.train.rec,
+    #                                        t.points      = t.points,
+    #                                        breaks        = breaks,
+    #                                        fix.par       = fix.par,
+    #                                        reconst_fcts  = reconst_fcts,
+    #                                        Thp           = T_hp.train)
+    # 
+    # plot(wgt$wgts.fd, ylim=c(0,1))
+    # title(main=paste0('Parameter ', fix.par))
+    # 
+    wgt       <- create_old_weights(curves.rec    = curves.train.rec,
+                                    t.points      = t.points,
+                                    breaks        = breaks,
+                                    fix.par       = fix.par,
+                                    reconst_fcts  = reconst_fcts,
+                                    Thp           = T_hp.train)
+    
+    # plot(wgt$wgts.fd, ylim=c(0,1))
+    # title(main=paste0('Parameter ', fix.par))
+  } else {
+    wgt       <- create_zero_weights(curves.rec    = curves.train.rec,
+                                     t.points      = t.points,
+                                     breaks        = breaks,
+                                     reconst_fcts  = reconst_fcts,
+                                     Thp           = T_hp.train)
+  }
+
   ## Smoothing -----------------------------------------------------------------
-  if(wgts.flag)
+  if(wgts.flag) # && is.numeric(fix.par)
   {
     smth      <- wt_bsplinesmoothing(curves   = curves.train.rec,
                                      wgts.obs = wgt$wgts.obs,

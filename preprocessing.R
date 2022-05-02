@@ -10,6 +10,7 @@ library(roahd)
 library(coda)
 library(devtools)
 library(fastmatrix)
+library(latex2exp)
 
 ## DATA EXTRACTION -------------------------------------------------------------
 
@@ -208,6 +209,41 @@ save(rotD50.f, dJB, MAG, VS30, SoF, U_hp, V_hp, T.period, file='DATA/data.RData'
 ## Regressors construction ------------------------------------------------------
 load('DATA/ITA18_regressors.RData')
 load('DATA/t_period.RData')
+load('DATA/curves.RData')
+load('DATA/data.RData')
+
+library(wesanderson)
+pal <- wes_palette('Cavalcanti1')
+
+na.f <- c()
+for(i in 1:dim(curves)[2])
+{
+  na.f[i] <- sum(is.na(curves[,i]))
+}
+obs.inc <- which(na.f>0)
+
+# col1 <- rep(pal[2],length(dJB))
+# col1[obs.inc] <- "darkorange"
+dticks <- seq(-1,2, by=1)
+
+auxi <- dJB
+idxs <- which(dJB<0.1)
+auxi[idxs] <- 0.1
+
+cols <- rep(pal[1], length(dJB))
+cols[which(SoF=="SS")] <- "lightblue"
+cols[which(SoF=="TF")] <- "blue"
+
+## Plot of magnitude versus distance
+pdf(file = paste0("useful-pics/MAGvsDIST.pdf"), width = 5, height = 5)
+par(mar=c(4.5,4.5,2.5,1)+.1)
+plot(log10(auxi), MAG, col=cols, xaxt="n", xlab=TeX("$log_{10} (d_{JB})$"), ylab=TeX("$M_w$"),
+     main="(b) Magnitude vs JB distance", cex.lab=1.65, cex.axis=1.65, cex.main=1.65, pch=16)
+axis(side=1, at=dticks, labels=10^dticks, cex.axis=1.65)
+grid()
+legend(-1, 5, legend=c("NF", "SS", "TF"), col=c(pal[1], "lightblue","blue"),
+       pch=16, cex=1.2)
+dev.off()
 
 #scaletta
 #1. rendi Mh, Mref e h degli fd objects. Mi serve per capire quale sia l'fPar
@@ -223,12 +259,50 @@ plot(T.period, ITA18.regressors$Mref.vec, type='l', xlab='Period', ylab='Mref')
 plot(T.period, ITA18.regressors$h.vec, type='l', xlab='Period', ylab='h')
 
 t.points <- log10(T.period)
-t.points[1] <- -2.4
+t.points[1] <- -2.5
+xticks <- c(-2,-1,0,1)
 
 par(mfrow=c(3,1))
 plot(t.points, ITA18.regressors$Mh.vec, type='l', xlab='log10(T)', ylab='Mh')
 plot(t.points, ITA18.regressors$Mref.vec, type='l', xlab='log10(T)', ylab='Mref')
 plot(t.points, ITA18.regressors$h.vec, type='l', xlab='log10(T)', ylab='h')
+
+load('DATA/T_hp.RData')
+prop <- c()
+for(t in 1:length(T.period))
+{
+  prop[t] <- length(which(T_hp>=T.period[t]))/length(T_hp) 
+}
+
+vert.idxs <- c(21, 33)
+
+pdf(file = paste0("useful-pics/perc-log-period.pdf"), width = 8, height = 5)
+par(mar=c(4.5, 4.5, 2.5, 1)+.1)
+plot(t.points, prop, ylim=c(0,1), xlab="Period [s]", ylab="", type='l', lwd=3,
+     col='darkorange', xaxt='n', cex.lab=1.8, cex.main=1.8, cex.axis=1.8,
+     main = "(b) Period-wise fraction of observed data")
+axis(side=1, at=xticks, labels = 10^xticks, cex.axis=1.8)
+points(t.points, prop, pch=16, col='darkorange')
+grid()
+abline(h=0.75, col='black', lty=5, lwd=2)
+abline(v=t.points[21], col='black', lty=4, lwd=2)
+abline(v=t.points[32], col='black', lty=4, lwd=2)
+dev.off()
+
+yticks <- c(-2,0,2)
+load('DATA/curves.RData')
+pdf(file = paste0("useful-pics/curves-2.pdf"), width = 8, height = 5)
+par(mar=c(4.5, 4.5, 2.5, 1)+.1)
+matplot(t.points, curves, type='l', col='grey80', ylab="IM",
+        xlab="Period [s]", xaxt='n', yaxt='n',
+        cex.lab=1.8, cex.main=1.8, cex.axis=1.8,
+        main = "(a) Curves of IM")
+axis(side=1, at=xticks, labels = 10^xticks, cex.axis=1.8)
+axis(side=2, at=yticks, labels=10^yticks, cex.axis=1.8)
+lines(t.points, curves[,194], type='l', lwd=3, col='darkorange')
+points(t.points, curves[,194], pch=16, col='darkorange')
+grid()
+dev.off()
 
 ## Functional covariates on T ## -------------------------------------------
 t.points <- T.period
@@ -520,20 +594,39 @@ save(xlist, file='DATA/xlist.RData')
 
 ## Functional covariates on log(T) ## --------------------------------------------------
 t.points <- log10(T.period)
-t.points[1] <- -2.4
+t.points[1] <- -2.5
 breaks <- t.points
 # Mh
 basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=1)
-Mh.fd <- smooth.basis(t.points, ITA18.regressors$Mh.vec, basis)
+Mh.fd <- smooth.basis(t.points, ITA18.regressors$Mh.vec, basis)$fd
 plot(Mh.fd)
 lines(t.points, ITA18.regressors$Mh.vec, type='l', xlab='Period', ylab='Mh', col='red')
 
 basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=3)
 fPar <- fdPar(fdobj=basis, Lfdobj=1, lambda=0.1)
-Mh.fd <- smooth.basis(t.points, ITA18.regressors$Mh.vec, fPar)
+Mh.fd <- smooth.basis(t.points, ITA18.regressors$Mh.vec, fPar)$fd
 plot(Mh.fd)
 lines(t.points, ITA18.regressors$Mh.vec, type='l', xlab='Period', ylab='Mh', col='red')
 
+
+xticks <- c(-2,-1,0,1)
+xx <- seq(-2.5, 1, length.out=1000)
+Mh.fd.vals <- eval.fd(xx, Mh.fd)
+pdf(file = paste0("useful-pics/Mh.pdf"), width = 8, height = 5)
+par(mar=c(4.5, 4.5, 2.5, 1)+.1)
+plot(xx, Mh.fd.vals, type='l', xlab="Period [s]", ylab=TeX(r'($M_h$)'),
+     lwd=3, col='darkorange', xaxt='n', main='(a) Smoothing of the hinge magnitude',
+     cex.main=1.8, cex.axis=1.8, cex.lab=1.8)
+axis(side=1, at=xticks, labels = 10^xticks, cex.axis=1.8)
+lines(t.points, ITA18.regressors$Mh.vec, type='l', col='grey40', lwd=2, lty=5)
+legend(x = -2.5, y=6.2,   # Coordinates (x also accepts keywords)
+       legend = c('Lanzano et al., 2019','Quadratic function'),
+       col = c("grey40", "darkorange"),
+       lwd = 2,
+       lty = c(5,1),
+       cex = 1.8)
+grid()
+dev.off()
 
 # Mref
 basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
@@ -753,27 +846,33 @@ fPar <- fdPar(fdobj=basis, Lfdobj=2, lambda=lambda.opt)
 D3.fd <- smooth.basis(t.points, reg.D3, fPar)$fd
 plot(D3.fd)
 
-# Project constant coefficients over a constant basis
-basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=1)
 
-reg.SS <- t(replicate(N, reg.SS))
-SS.fd <- smooth.basis(t.points, reg.SS, fPar)$fd
-matplot(t.points, reg.SS, type='l')
-plot(SS.fd)
 
-reg.TF <- t(replicate(N, reg.TF))
-TF.fd <- smooth.basis(t.points, reg.TF, fPar)$fd
+# # Project constant coefficients over a constant basis
+# basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=1)
+# 
+# reg.SS <- t(replicate(N, reg.SS))
+# SS.fd <- smooth.basis(t.points, reg.SS, fPar)$fd
+# matplot(t.points, reg.SS, type='l')
+# plot(SS.fd)
+# 
+# reg.TF <- t(replicate(N, reg.TF))
+# TF.fd <- smooth.basis(t.points, reg.TF, fPar)$fd
+# 
+# reg.S <- t(replicate(N, reg.S))
+# S.fd <- smooth.basis(t.points, reg.S, fPar)$fd
+# matplot(t.points, reg.S, type='l')
+# plot(S.fd)
+# 
+# # Create the intercept
+# intercept <- t(replicate(N, rep(1,n)))
+# intercept.fd <- smooth.basis(t.points, intercept, basis)$fd
+# 
+# ## Finally build the list of functional regressors
+# xlist <- list(intercept.fd, Mlow.fd, Mhigh.fd, SS.fd, TF.fd, D1.fd, D2.fd, D3.fd, S.fd)
+# save(xlist, file='DATA/xlist-log.RData')
 
-reg.S <- t(replicate(N, reg.S))
-S.fd <- smooth.basis(t.points, reg.S, fPar)$fd
-matplot(t.points, reg.S, type='l')
-plot(S.fd)
-
-# Create the intercept
-intercept <- t(replicate(N, rep(1,n)))
-intercept.fd <- smooth.basis(t.points, intercept, basis)$fd
-
-## Finally build the list of functional regressors
-xlist <- list(intercept.fd, Mlow.fd, Mhigh.fd, SS.fd, TF.fd, D1.fd, D2.fd, D3.fd, S.fd)
-save(xlist, file='DATA/xlist-log.RData')
-
+## Construct constant covariates
+intercept <- rep(1,n)
+xlist <- list(intercept, Mlow.fd, Mhigh.fd, reg.SS, reg.TF, D1.fd, D2.fd, D3.fd, reg.S)
+save(xlist, file='DATA/xlist-logg.RData')

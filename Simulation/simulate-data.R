@@ -55,6 +55,7 @@ for(t in 1:N)
 }
 reg.S <- ifelse(VS30<=1500, log10(VS30/800), log10(1500/800))
 
+
 basis <- create.bspline.basis(rangeval=range(t.points), breaks=breaks, norder=4)
 esp        <- seq(-12,1, by=1)
 lambda.vec <- sort(10^esp)
