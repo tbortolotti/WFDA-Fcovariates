@@ -24,7 +24,7 @@ load('DATA/obs.RData')
 load('DATA/T_hp.RData')
 load('DATA/xlist-logg.RData')
 load('DATA/events.RData')
-load('blist_options/log/blistt_latest.RData')
+load('DATA/blistt_latest.RData')
 
 ## Function for the evaluation of the MSE for each proposed method
 source('methods/Reconstruction/methods_workflow_new.R')

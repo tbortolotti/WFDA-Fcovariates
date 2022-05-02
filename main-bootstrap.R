@@ -40,8 +40,7 @@ load('DATA/T_hp.RData')
 load('DATA/xlist-logg.RData')
 load('DATA/data.RData')
 load('DATA/events.RData')
-load('blist_options/log/blistt_latest.RData')
-blist[[6]]$lambda <- 0.1
+load('DATA/blistt_latest.RData')
 
 ## Utilities -------------------------------------------------------------------
 n <- dim(curves)[2]

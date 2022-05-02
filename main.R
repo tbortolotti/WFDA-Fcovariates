@@ -96,7 +96,6 @@ curves.extrap.fd <- smth$curves.fd
 
 ## B-list ----------------------------------------------------------------------
 load('DATA/blistt_latest.RData')
-blist[[6]]$lambda <- 0.1
 
 ## Regression and beta estimation ----------------------------------------------
 mod <- weighted_fRegress(y            = curves.extrap.fd,
